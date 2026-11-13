@@ -1,0 +1,32 @@
+kits:
+  start:
+    display-name: "<anim:rainbow>START</anim>"
+    cooldown: 3600
+    one-time: false
+    gui-slot: 10
+    # Per-kit override pod claimanim:
+    # claim-animation:
+    #   enabled: true
+    #   mode: "forward" # sprawdz animations2.yml po liste 20 trybow
+    #   interval-ticks: 2
+    #   interval-jitter-ticks: 0
+    #   batch-size: 1
+    #   start-delay-ticks: 0
+    #   split-stacks: false
+    #   max-items: 0
+    #   temporary-glow:
+    #     enabled: true
+    #     remove-after-ticks: 30
+    #     enchantment: "minecraft:unbreaking"
+    icon:
+      ==: org.bukkit.inventory.ItemStack
+      v: 3700
+      type: CHEST
+    items:
+      - ==: org.bukkit.inventory.ItemStack
+        v: 3700
+        type: STONE_SWORD
+      - ==: org.bukkit.inventory.ItemStack
+        v: 3700
+        type: BREAD
+        amount: 16

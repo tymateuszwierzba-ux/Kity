@@ -1,0 +1,108 @@
+enabled: true
+refresh-ticks: 1
+
+# Uzycie:
+# 1) Plynna animacja:
+#    <anim:rainbow>ADMIN</anim>
+# 2) gradient:
+#    <gradient:#FF0000:#00FF00>ADMIN</gradient>
+#    (alias: <grad:#FF0000:#00FF00>ADMIN</grad>)
+#
+# type:
+# - gradient
+# - frames
+animations:
+  rainbow:
+    type: gradient
+    speed: 0.75
+    spread: 0.18
+    colors:
+      - "#FF5555"
+      - "#FFAA00"
+      - "#FFFF55"
+      - "#55FF55"
+      - "#55FFFF"
+      - "#5599FF"
+      - "#AA55FF"
+      - "#FF55AA"
+
+  blue:
+    type: gradient
+    speed: 0.65
+    spread: 0.16
+    colors:
+      - "#8AE9FF"
+      - "#66CCFF"
+      - "#4AAFFF"
+      - "#3D98FF"
+      - "#6BB6FF"
+
+  gold:
+    type: gradient
+    speed: 0.55
+    spread: 0.14
+    colors:
+      - "#FFF0B3"
+      - "#FFE28A"
+      - "#FFD566"
+      - "#FFC24A"
+      - "#FFD566"
+
+  white:
+    type: gradient
+    speed: 0.45
+    spread: 0.12
+    colors:
+      - "#FFFFFF"
+      - "#F0F0F0"
+      - "#DCDCDC"
+      - "#F0F0F0"
+
+  green:
+    type: gradient
+    speed: 0.60
+    spread: 0.15
+    colors:
+      - "#A8FFCF"
+      - "#66FF99"
+      - "#44DD77"
+      - "#66FF99"
+
+  red:
+    type: gradient
+    speed: 0.60
+    spread: 0.15
+    colors:
+      - "#FF9C9C"
+      - "#FF7777"
+      - "#EE5555"
+      - "#FF7777"
+
+  purple:
+    type: gradient
+    speed: 0.60
+    spread: 0.15
+    colors:
+      - "#E6C9FF"
+      - "#CC99FF"
+      - "#AA77DD"
+      - "#CC99FF"
+
+  aqua:
+    type: gradient
+    speed: 0.65
+    spread: 0.16
+    colors:
+      - "#B6FFFF"
+      - "#77FFFF"
+      - "#55DDDD"
+      - "#77FFFF"
+
+  pulse:
+    type: frames
+    interval-ticks: 2
+    frames:
+      - "&#FFFFFF{text}"
+      - "&#EAEAEA{text}"
+      - "&#D5D5D5{text}"
+      - "&#EAEAEA{text}"

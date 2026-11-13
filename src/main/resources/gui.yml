@@ -1,0 +1,322 @@
+text:
+  status-available: "&aDostepny"
+  status-cooldown: "&cCooldown"
+  status-one-time: "&cJednorazowy"
+  status-no-permission: "&cBrak permisji"
+  one-time-yes: "&aTak"
+  one-time-no: "&cNie"
+  cooldown-ready: "&7Brak"
+  cooldown-one-time: "&7-"
+  rank-none: "&7Brak"
+  rank-prefix-none: "&7-"
+  rank-selected: "&a(aktualna)"
+  feedback-default: "&7Domyslny"
+  feedback-none: "&7Brak"
+  feedback-selected: "&a(aktualny)"
+
+player:
+  title: "&#00E5FF&lKITY"
+  size: 54
+  kit-slots: [10,11,12,13,14,15,16,19,20,21,22,23,24,25,28,29,30,31,32,33,34]
+  filler:
+    enabled: true
+    item:
+      material: BLACK_STAINED_GLASS_PANE
+      name: " "
+    slots: [0,1,2,3,4,5,6,7,8,9,17,18,26,27,35,36,37,38,39,40,41,42,43,44,45,46,47,48,50,51,52,53]
+  kit-item:
+    name: "&#66CCFF{kit_display}"
+    lore:
+      - "&7Status: {status}"
+      - "&7Cooldown: &#FFAA00{cooldown}"
+      - "&7Ranga: {rank_display}"
+      - ""
+      - "&aLPM: Odbierz"
+      - "&bShift+LPM: Podglad"
+  navigation:
+    prev:
+      slot: 48
+      item:
+        material: ARROW
+        name: "&aPoprzednia strona"
+        lore:
+          - "&7Strona {page}/{pages}"
+    next:
+      slot: 50
+      item:
+        material: ARROW
+        name: "&aNastepna strona"
+        lore:
+          - "&7Strona {page}/{pages}"
+
+admin:
+  title: "&#FF5555&lFORT-CODE - best"
+  size: 54
+  kit-slots: [10,11,12,13,14,15,16,19,20,21,22,23,24,25,28,29,30,31,32,33,34]
+  filler:
+    enabled: true
+    item:
+      material: BLACK_STAINED_GLASS_PANE
+      name: " "
+    slots: [0,1,2,3,4,5,6,7,8,9,17,18,26,27,29,35,36,37,38,39,40,41,42,43,44,45,46,47,48,50,51,52,53]
+  kit-item:
+    name: "&#FF8888{kit_display}"
+    lore:
+      - "&7ID: &f{kit_id}"
+      - "&7Cooldown: &#FFAA00{cooldown}"
+      - "&7One-time: {one_time}"
+      - "&7Items: &f{items}"
+      - "&7Ranga: {rank_display}"
+      - "&7Slot: &f{slot}"
+      - ""
+      - "&aLPM: Odbierz kit (Bez cooldownu)"
+      - "&bShift+LPM: Ustaw itemy z EQ"
+      - "&ePPM: Edytuj"
+      - "&cShift+PPM: Usun"
+  actions:
+    create:
+      slot: 49
+      item:
+        material: EMERALD_BLOCK
+        name: "&aStworz kit"
+        lore:
+          - "&7Tworzy kit z EQ"
+          - "&7Ikona z itemu w rece"
+  navigation:
+    prev:
+      slot: 48
+      item:
+        material: ARROW
+        name: "&aPoprzednia strona"
+        lore:
+          - "&7Strona {page}/{pages}"
+    next:
+      slot: 50
+      item:
+        material: ARROW
+        name: "&aNastepna strona"
+        lore:
+          - "&7Strona {page}/{pages}"
+
+editor:
+  title: "&#FFD35A&lEDYTOR: {kit_display}"
+  size: 54
+  filler:
+    enabled: true
+    item:
+      material: GRAY_STAINED_GLASS_PANE
+      name: " "
+    slots: [0,1,2,3,4,5,6,7,8,9,17,18,26,27,35,36,37,38,39,40,41,42,43,44,45,46,47,48,50,51,52,53]
+  kit-item:
+    slot: 13
+    name: "&#FFD35A{kit_display}"
+    lore:
+      - "&7ID: &f{kit_id}"
+      - "&7Cooldown: &#FFAA00{cooldown}"
+      - "&7One-time: {one_time}"
+      - "&7Items: &f{items}"
+      - "&7Ranga: {rank_display}"
+      - "&7Wiadomosc: &f{feedback_type_display}"
+      - "&7Slot: &f{slot}"
+  actions:
+    set-items:
+      slot: 20
+      item:
+        material: CHEST
+        name: "&aUstaw itemy z EQ"
+    set-icon:
+      slot: 22
+      item:
+        material: ITEM_FRAME
+        name: "&aUstaw ikone z reki"
+    set-name:
+      slot: 24
+      item:
+        material: NAME_TAG
+        name: "&aUstaw nazwe"
+    set-rank:
+      slot: 29
+      item:
+        material: PAPER
+        name: "&aUstaw range"
+        lore:
+          - "&7Wybor z pluginu LuckPerms"
+    set-feedback-type:
+      slot: 30
+      item:
+        material: OAK_SIGN
+        name: "&aTyp wiadomosci"
+        lore:
+          - "&7Aktualnie: &f{feedback_type_display}"
+    set-cooldown:
+      slot: 31
+      item:
+        material: CLOCK
+        name: "&aUstaw cooldown"
+    set-slot:
+      slot: 33
+      item:
+        material: COMPASS
+        name: "&aUstaw slot GUI"
+        lore:
+          - "&7-1 = brak slotu"
+    toggle-one-time:
+      slot: 38
+      item:
+        material: LEVER
+        name: "&aToggle one-time"
+    preview:
+      slot: 40
+      item:
+        material: ENDER_EYE
+        name: "&bPodglad"
+    delete:
+      slot: 42
+      item:
+        material: BARRIER
+        name: "&cUsun kit"
+    back:
+      slot: 49
+      item:
+        material: ARROW
+        name: "&7Wroc"
+
+preview:
+  title: "&#8FD3FF&lPODGLAD: {kit_display}"
+  size: 54
+  filler:
+    enabled: true
+    item:
+      material: BLACK_STAINED_GLASS_PANE
+      name: " "
+    slots: [45,46,47,48,50,51,52,53]
+  back:
+    slot: 49
+    item:
+      material: BARRIER
+      name: "&cWroc"
+
+rank:
+  title: "&#6FD3FF&lRANGI: {kit_display}"
+  size: 54
+  group-slots: [10,11,12,13,14,15,16,19,20,21,22,23,24,25,28,29,30,31,32,33,34]
+  filler:
+    enabled: true
+    item:
+      material: BLACK_STAINED_GLASS_PANE
+      name: " "
+    slots: [0,1,2,3,4,5,6,7,8,9,17,18,26,27,35,36,37,38,39,40,41,42,43,44,45,46,47,48,50,51,52,53]
+  group-item:
+    material: NAME_TAG
+    name: "{rank_display}"
+    lore:
+      - "&7Ranga: &f{rank_name}"
+      - "&7Prefix: &f{rank_prefix}"
+      - "{selected}"
+      - "&aKliknij, aby ustawic"
+  none:
+    slot: 49
+    item:
+      material: BARRIER
+      name: "&cBrak rangi"
+      lore:
+        - "&7Usuwa wymagana range"
+  navigation:
+    prev:
+      slot: 48
+      item:
+        material: ARROW
+        name: "&aPoprzednia strona"
+        lore:
+          - "&7Strona {page}/{pages}"
+    next:
+      slot: 50
+      item:
+        material: ARROW
+        name: "&aNastepna strona"
+        lore:
+          - "&7Strona {page}/{pages}"
+  back:
+    slot: 53
+    item:
+      material: ARROW
+      name: "&7Wroc"
+
+feedback:
+  title: "&#6FD3FF&lTYP WIADOMOSCI: {kit_display}"
+  size: 27
+  filler:
+    enabled: true
+    item:
+      material: GRAY_STAINED_GLASS_PANE
+      name: " "
+    slots: [0,1,2,3,4,5,6,7,8,9,17,18,19,20,21,22,23,24,25,26]
+  options:
+    default:
+      type: "default"
+      slot: 10
+      item:
+        material: PAPER
+        name: "&aDomyslny"
+        lore:
+          - "&7Uzywa ustawien z config.yml"
+          - "{selected}"
+    chat:
+      type: "chat"
+      slot: 11
+      item:
+        material: BOOK
+        name: "&aChat"
+        lore:
+          - "&7Wysyla wiadomosc na czat"
+          - "{selected}"
+    title:
+      type: "title"
+      slot: 12
+      item:
+        material: NAME_TAG
+        name: "&aTitle"
+        lore:
+          - "&7Wysyla title + subtitle"
+          - "{selected}"
+    actionbar:
+      type: "actionbar"
+      slot: 13
+      item:
+        material: EXPERIENCE_BOTTLE
+        name: "&aActionBar"
+        lore:
+          - "&7Wysyla wiadomosc nad hotbar"
+          - "{selected}"
+    bossbar:
+      type: "bossbar"
+      slot: 14
+      item:
+        material: BEACON
+        name: "&aBossBar"
+        lore:
+          - "&7Pokazuje pasek bossa"
+          - "{selected}"
+    all:
+      type: "all"
+      slot: 15
+      item:
+        material: EMERALD
+        name: "&aWszystkie"
+        lore:
+          - "&7Wysyla wszedzie"
+          - "{selected}"
+    none:
+      type: "none"
+      slot: 16
+      item:
+        material: BARRIER
+        name: "&cBrak"
+        lore:
+          - "&7Nie wysyla nic"
+          - "{selected}"
+  back:
+    slot: 22
+    item:
+      material: ARROW
+      name: "&7Wroc"

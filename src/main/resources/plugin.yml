@@ -1,0 +1,28 @@
+name: fortcode-kits
+version: 1.0.0
+main: pl.tymek24.fortcodekits.FortCodeKits
+api-version: '1.18'
+author: TYMEK24
+softdepend: [PlaceholderAPI, Vault, LuckPerms]
+commands:
+  kits:
+    aliases: [kit, fortkits]
+    description: Otwiera GUI kitow
+    permission: fortcode.kits.use
+  adminkit:
+    description: Panel administracyjny kitow
+    usage: "/adminkit <open|create|edit|delete|setname|setcooldown|setslot|setrank|animation|animacja|claimanim|reload>"
+    permission: fortcode.kits.admin
+permissions:
+  fortcode.kits.use:
+    default: true
+  fortcode.kits.kit.*:
+    default: op
+  fortcode.kits.*:
+    default: op
+  fortcode.kits.admin:
+    default: op
+  fortcode.kits.reload:
+    default: op
+  fortcode.kits.give:
+    default: op

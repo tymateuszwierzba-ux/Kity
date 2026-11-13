@@ -1,0 +1,47 @@
+database:
+  type: "sqlite" # mysql / sqlite
+  mysql:
+    host: "localhost"
+    port: 3306
+    database: "minecraft"
+    user: "root"
+    password: "password"
+
+# GUI konfiguruj w gui.ymlzmn
+sounds:
+  open: "UI_BUTTON_CLICK"
+  claim: "ENTITY_PLAYER_LEVELUP"
+
+feedback:
+  claim:
+    channels: ["chat"] # chat / title / actionbar / bossbar
+    message-animation:
+      enabled: true
+      channels: ["actionbar", "bossbar"]
+      interval-ticks: 1
+      actionbar-duration-ticks: 40
+    title:
+      fade-in: 10
+      stay: 40
+      fade-out: 10
+    bossbar:
+      duration-ticks: 60
+      color: "GREEN"
+      style: "SOLID"
+
+animation:
+  claim:
+    enabled: true
+    particle: "FIREWORKS_SPARK"
+    duration-ticks: 20
+    points: 24
+    radius: 1.2
+    height: 1.6
+    rotation: 0.4
+    y-offset: 0.2
+    burst:
+      enabled: true
+      count: 30
+      offset-y: 1.0
+      spread: 0.4
+      speed: 0.02
