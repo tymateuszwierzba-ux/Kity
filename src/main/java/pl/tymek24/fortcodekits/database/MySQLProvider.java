@@ -18,6 +18,11 @@ public class MySQLProvider extends AbstractSqlProvider {
 
   private static HikariDataSource buildSource(
       String host, int port, String database, String user, String password) {
+    try {
+      Class.forName("com.mysql.cj.jdbc.Driver");
+    } catch (ClassNotFoundException ex) {
+      throw new RuntimeException(ex);
+    }
     HikariConfig config = new HikariConfig();
     config.setJdbcUrl(
         "jdbc:mysql://"
