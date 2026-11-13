@@ -17,6 +17,12 @@ public class GUIManager {
   private final EditorGUI editorGUI;
   private final RankGUI rankGUI;
   private final FeedbackGUI feedbackGUI;
+  private final SettingsGUI settingsGUI;
+  private final StatsGUI statsGUI;
+  private final HistoryGUI historyGUI;
+  private final FavoritesGUI favoritesGUI;
+  private final TopGUI topGUI;
+  private final ConfirmGUI confirmGUI;
   private BukkitTask refreshTask;
 
   public GUIManager(FortCodeKits plugin) {
@@ -28,6 +34,12 @@ public class GUIManager {
     this.editorGUI = new EditorGUI(plugin);
     this.rankGUI = new RankGUI(plugin);
     this.feedbackGUI = new FeedbackGUI(plugin);
+    this.settingsGUI = new SettingsGUI(plugin);
+    this.statsGUI = new StatsGUI(plugin);
+    this.historyGUI = new HistoryGUI(plugin);
+    this.favoritesGUI = new FavoritesGUI(plugin);
+    this.topGUI = new TopGUI(plugin);
+    this.confirmGUI = new ConfirmGUI(plugin);
   }
 
   public void reload() {
@@ -74,9 +86,54 @@ public class GUIManager {
     this.feedbackGUI.open(player, kit);
   }
 
-  public void startAutoRefresh() {
+  public void openSettings(Player player) {
+    this.settingsGUI.open(player);
+  }
+
+  public void openStats(Player player) {
+    this.statsGUI.open(player);
+  }
+
+  public void openStats(Player player, int page) {
+    this.statsGUI.open(player, page);
+  }
+
+  public void openHistory(Player player) {
+    this.historyGUI.open(player);
+  }
+
+  public void openHistory(Player player, int page) {
+    this.historyGUI.open(player, page);
+  }
+
+  public void openFavorites(Player player) {
+    this.favoritesGUI.open(player);
+  }
+
+  public void openFavorites(Player player, int page) {
+    this.favoritesGUI.open(player, page);
+  }
+
+  public void openTop(Player player) {
+    this.topGUI.open(player);
+  }
+
+  public void openConfirm(
+      Player player, String action, String kitId, GuiType returnType, String message) {
+    this.confirmGUI.open(player, action, kitId, returnType, message);
+  }
+
+  public PlayerGUI getPlayerGUI() {
+    return this.playerGUI;
+  }
+
+  public AdminGUI getAdminGUI() {
+    return this.adminGUI;
+  }
+
+  public StartAutoRefreshResult startAutoRefresh() {
     if (this.refreshTask != null) {
-      return;
+      return StartAutoRefreshResult.ALREADY_RUNNING;
     }
     long interval = Math.max(1L, this.plugin.getTextAnimationManager().getRefreshTicks());
     this.refreshTask =
@@ -92,26 +149,17 @@ public class GUIManager {
                     }
                     GuiHolder holder = (GuiHolder) inventoryHolder;
                     switch (holder.getType()) {
-                      case PLAYER:
-                        {
-                          this.playerGUI.refresh(player, holder);
-                          break;
-                        }
-                      case ADMIN:
-                        {
-                          this.adminGUI.refresh(player, holder);
-                          break;
-                        }
-                      case EDITOR:
-                        {
-                          this.editorGUI.refresh(player, holder);
-                          break;
-                        }
+                      case PLAYER -> this.playerGUI.refresh(player, holder);
+                      case ADMIN -> this.adminGUI.refresh(player, holder);
+                      case EDITOR -> this.editorGUI.refresh(player, holder);
+                      default -> {
+                      }
                     }
                   }
                 },
                 interval,
                 interval);
+    return StartAutoRefreshResult.STARTED;
   }
 
   public void stopAutoRefresh() {
@@ -125,14 +173,6 @@ public class GUIManager {
   public void restartAutoRefresh() {
     this.stopAutoRefresh();
     this.startAutoRefresh();
-  }
-
-  public PlayerGUI getPlayerGUI() {
-    return this.playerGUI;
-  }
-
-  public AdminGUI getAdminGUI() {
-    return this.adminGUI;
   }
 
   public void refreshPlayerIfOpen(Player player) {
@@ -154,48 +194,39 @@ public class GUIManager {
       if (!(inventoryHolder instanceof GuiHolder)) continue;
       GuiHolder holder = (GuiHolder) inventoryHolder;
       switch (holder.getType()) {
-        case PLAYER:
-          {
-            this.openPlayer(player, holder.getPage());
-            break;
-          }
-        case ADMIN:
-          {
-            this.openAdmin(player, holder.getPage());
-            break;
-          }
-        case EDITOR:
-          {
-            if (kit == null
-                || holder.getKitId() == null
-                || !holder.getKitId().equalsIgnoreCase(kit.getId())) break;
-            this.openEditor(player, kit);
-            break;
-          }
-        case RANK:
-          {
-            if (kit == null
-                || holder.getKitId() == null
-                || !holder.getKitId().equalsIgnoreCase(kit.getId())) break;
-            this.openRank(player, kit, holder.getPage());
-            break;
-          }
-        case FEEDBACK:
-          {
-            if (kit == null
-                || holder.getKitId() == null
-                || !holder.getKitId().equalsIgnoreCase(kit.getId())) break;
-            this.openFeedback(player, kit);
-            break;
-          }
-        case PREVIEW:
-          {
-            if (kit == null
-                || holder.getKitId() == null
-                || !holder.getKitId().equalsIgnoreCase(kit.getId())) break;
-            this.openPreview(player, kit, holder.getReturnType());
-            break;
-          }
+        case PLAYER -> this.openPlayer(player, holder.getPage());
+        case ADMIN -> this.openAdmin(player, holder.getPage());
+        case EDITOR -> {
+          if (kit == null
+              || holder.getKitId() == null
+              || !holder.getKitId().equalsIgnoreCase(kit.getId())) break;
+          this.openEditor(player, kit);
+        }
+        case RANK -> {
+          if (kit == null
+              || holder.getKitId() == null
+              || !holder.getKitId().equalsIgnoreCase(kit.getId())) break;
+          this.openRank(player, kit, holder.getPage());
+        }
+        case FEEDBACK -> {
+          if (kit == null
+              || holder.getKitId() == null
+              || !holder.getKitId().equalsIgnoreCase(kit.getId())) break;
+          this.openFeedback(player, kit);
+        }
+        case PREVIEW -> {
+          if (kit == null
+              || holder.getKitId() == null
+              || !holder.getKitId().equalsIgnoreCase(kit.getId())) break;
+          this.openPreview(player, kit, holder.getReturnType());
+        }
+        case STATS -> this.openStats(player, holder.getPage());
+        case HISTORY -> this.openHistory(player, holder.getPage());
+        case FAVORITES -> this.openFavorites(player, holder.getPage());
+        case TOP -> this.openTop(player);
+        case SETTINGS -> this.openSettings(player);
+        default -> {
+        }
       }
     }
   }
@@ -210,62 +241,39 @@ public class GUIManager {
       if (!(inventoryHolder instanceof GuiHolder)) continue;
       GuiHolder holder = (GuiHolder) inventoryHolder;
       switch (holder.getType()) {
-        case PLAYER:
-          {
-            this.openPlayer(player, holder.getPage());
-            break;
+        case PLAYER -> this.openPlayer(player, holder.getPage());
+        case ADMIN -> this.openAdmin(player, holder.getPage());
+        case EDITOR, RANK, FEEDBACK -> {
+          if (holder.getKitId() == null || !holder.getKitId().equalsIgnoreCase(kitId)) break;
+          if (player.hasPermission("fortcode.kits.admin")) {
+            this.openAdmin(player);
+          } else {
+            this.openPlayer(player);
           }
-        case ADMIN:
-          {
-            this.openAdmin(player, holder.getPage());
-            break;
-          }
-        case EDITOR:
-          {
-            if (holder.getKitId() == null || !holder.getKitId().equalsIgnoreCase(kitId)) break;
+        }
+        case PREVIEW -> {
+          if (holder.getKitId() == null || !holder.getKitId().equalsIgnoreCase(kitId)) break;
+          if (holder.getReturnType() == GuiType.ADMIN
+              || holder.getReturnType() == GuiType.EDITOR) {
             if (player.hasPermission("fortcode.kits.admin")) {
               this.openAdmin(player);
-              break;
-            }
-            this.openPlayer(player);
-            break;
-          }
-        case RANK:
-          {
-            if (holder.getKitId() == null || !holder.getKitId().equalsIgnoreCase(kitId)) break;
-            if (player.hasPermission("fortcode.kits.admin")) {
-              this.openAdmin(player);
-              break;
-            }
-            this.openPlayer(player);
-            break;
-          }
-        case FEEDBACK:
-          {
-            if (holder.getKitId() == null || !holder.getKitId().equalsIgnoreCase(kitId)) break;
-            if (player.hasPermission("fortcode.kits.admin")) {
-              this.openAdmin(player);
-              break;
-            }
-            this.openPlayer(player);
-            break;
-          }
-        case PREVIEW:
-          {
-            if (holder.getKitId() == null || !holder.getKitId().equalsIgnoreCase(kitId)) break;
-            if (holder.getReturnType() == GuiType.ADMIN
-                || holder.getReturnType() == GuiType.EDITOR) {
-              if (player.hasPermission("fortcode.kits.admin")) {
-                this.openAdmin(player);
-                break;
-              }
+            } else {
               this.openPlayer(player);
-              break;
             }
+          } else {
             this.openPlayer(player);
-            break;
           }
+        }
+        case FAVORITES -> this.openFavorites(player, holder.getPage());
+        case STATS -> this.openStats(player, holder.getPage());
+        default -> {
+        }
       }
     }
+  }
+
+  public enum StartAutoRefreshResult {
+    STARTED,
+    ALREADY_RUNNING
   }
 }

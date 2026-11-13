@@ -18,9 +18,11 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import pl.tymek24.fortcodekits.FortCodeKits;
 import pl.tymek24.fortcodekits.animation.KitClaimAnimationManager;
+import pl.tymek24.fortcodekits.gui.GuiSession;
 import pl.tymek24.fortcodekits.gui.GuiType;
 import pl.tymek24.fortcodekits.integration.LuckPermsHook;
 import pl.tymek24.fortcodekits.model.Kit;
+import pl.tymek24.fortcodekits.model.KitRarity;
 
 public class KitsCommand implements CommandExecutor, TabCompleter {
   private static final Pattern WRAPPED_ANIM_PATTERN =
@@ -77,6 +79,79 @@ public class KitsCommand implements CommandExecutor, TabCompleter {
             return true;
           }
           this.plugin.getGuiManager().openPreview(player, kit, GuiType.PLAYER);
+          break;
+        }
+      case "favorites":
+      case "ulubione":
+        {
+          if (!player.hasPermission("fortcode.kits.favorites")) {
+            return this.noPerm(player);
+          }
+          this.plugin.getGuiManager().openFavorites(player);
+          break;
+        }
+      case "favorite":
+      case "ulubiony":
+        {
+          if (args.length < 2) {
+            return false;
+          }
+          Kit kit = this.getKitOrMsg(player, args[1]);
+          if (kit == null) {
+            return true;
+          }
+          boolean added = this.plugin.getFavoriteManager().toggle(player.getUniqueId(), kit.getId());
+          this.plugin.getFavoriteManager().save();
+          Map<String, String> ph = Map.of("{kit}", kit.getDisplayName());
+          this.plugin.sendMessage(player, added ? "favorite-added" : "favorite-removed", ph);
+          break;
+        }
+      case "stats":
+      case "statystyki":
+        {
+          if (!player.hasPermission("fortcode.kits.stats")) {
+            return this.noPerm(player);
+          }
+          this.plugin.getGuiManager().openStats(player);
+          break;
+        }
+      case "history":
+      case "historia":
+        {
+          if (!player.hasPermission("fortcode.kits.stats")) {
+            return this.noPerm(player);
+          }
+          this.plugin.getGuiManager().openHistory(player);
+          break;
+        }
+      case "top":
+      case "ranking":
+        {
+          this.plugin.getGuiManager().openTop(player);
+          break;
+        }
+      case "settings":
+      case "ustawienia":
+        {
+          if (!player.hasPermission("fortcode.kits.settings")) {
+            return this.noPerm(player);
+          }
+          this.plugin.getGuiManager().openSettings(player);
+          break;
+        }
+      case "search":
+      case "szukaj":
+        {
+          if (args.length < 2) {
+            GuiSession.setSearch(player.getUniqueId(), "");
+            this.plugin.sendMessage(player, "search-cleared");
+          } else {
+            String query = this.join(args, 1);
+            GuiSession.setSearch(player.getUniqueId(), query);
+            Map<String, String> ph = Map.of("{query}", query);
+            this.plugin.sendMessage(player, "search-applied", ph);
+          }
+          this.plugin.getGuiManager().openPlayer(player);
           break;
         }
       case "reload":
@@ -341,6 +416,257 @@ public class KitsCommand implements CommandExecutor, TabCompleter {
           this.plugin.getKitManager().save();
           this.plugin.sendMessage(player, "kit-updated", Map.of("{kit}", kit.getDisplayName()));
           this.plugin.getGuiManager().refreshOpenGuis(kit);
+          break;
+        }
+      case "setprice":
+      case "cena":
+        {
+          if (args.length < 3) {
+            return false;
+          }
+          Kit kit = this.getKitOrMsg(player, args[1]);
+          if (kit == null) {
+            return true;
+          }
+          Double price = this.parseDouble(args[2].replace(',', '.'));
+          if (price == null || price < 0.0D) {
+            this.plugin.sendMessage(player, "input-invalid-number");
+            return true;
+          }
+          kit.setPrice(price);
+          this.plugin.getKitManager().save();
+          this.plugin.sendMessage(player, "kit-updated", Map.of("{kit}", kit.getDisplayName()));
+          this.plugin.getGuiManager().refreshOpenGuis(kit);
+          break;
+        }
+      case "setcategory":
+      case "kategoria":
+        {
+          if (args.length < 3) {
+            return false;
+          }
+          Kit kit = this.getKitOrMsg(player, args[1]);
+          if (kit == null) {
+            return true;
+          }
+          String raw = args[2];
+          if (raw.equalsIgnoreCase("none") || raw.equalsIgnoreCase("-")) {
+            kit.setCategory(null);
+          } else {
+            kit.setCategory(raw);
+          }
+          this.plugin.getKitManager().save();
+          this.plugin.sendMessage(player, "kit-updated", Map.of("{kit}", kit.getDisplayName()));
+          this.plugin.getGuiManager().refreshOpenGuis(kit);
+          break;
+        }
+      case "setrarity":
+      case "rzadkosc":
+        {
+          if (args.length < 3) {
+            return false;
+          }
+          Kit kit = this.getKitOrMsg(player, args[1]);
+          if (kit == null) {
+            return true;
+          }
+          String raw = args[2];
+          if (raw.equalsIgnoreCase("none") || raw.equalsIgnoreCase("-")) {
+            kit.setRarity(null);
+          } else {
+            KitRarity rarity = KitRarity.from(raw);
+            if (rarity == null) {
+              player.sendMessage(
+                  this.plugin.formatText("&#FF5555Nieznana rzadkosc. Dostepne: common, uncommon, rare, epic, legendary"));
+              return true;
+            }
+            kit.setRarity(rarity);
+          }
+          this.plugin.getKitManager().save();
+          this.plugin.sendMessage(player, "kit-updated", Map.of("{kit}", kit.getDisplayName()));
+          this.plugin.getGuiManager().refreshOpenGuis(kit);
+          break;
+        }
+      case "setclaimlimit":
+      case "limit":
+        {
+          if (args.length < 3) {
+            return false;
+          }
+          Kit kit = this.getKitOrMsg(player, args[1]);
+          if (kit == null) {
+            return true;
+          }
+          String raw = args[2];
+          if (raw.equalsIgnoreCase("none") || raw.equalsIgnoreCase("-")) {
+            kit.setClaimCountLimit(null);
+          } else {
+            Integer limit = this.parseInt(raw);
+            if (limit == null || limit < 0) {
+              this.plugin.sendMessage(player, "input-invalid-number");
+              return true;
+            }
+            kit.setClaimCountLimit(limit);
+          }
+          this.plugin.getKitManager().save();
+          this.plugin.sendMessage(player, "kit-updated", Map.of("{kit}", kit.getDisplayName()));
+          this.plugin.getGuiManager().refreshOpenGuis(kit);
+          break;
+        }
+      case "toggle-enabled":
+        {
+          if (args.length < 2) {
+            return false;
+          }
+          Kit kit = this.getKitOrMsg(player, args[1]);
+          if (kit == null) {
+            return true;
+          }
+          kit.setEnabled(!kit.isEnabled());
+          this.plugin.getKitManager().save();
+          this.plugin.sendMessage(player, "kit-updated", Map.of("{kit}", kit.getDisplayName()));
+          this.plugin.getGuiManager().refreshOpenGuis(kit);
+          break;
+        }
+      case "toggle-hidden":
+        {
+          if (args.length < 2) {
+            return false;
+          }
+          Kit kit = this.getKitOrMsg(player, args[1]);
+          if (kit == null) {
+            return true;
+          }
+          kit.setHidden(!kit.isHidden());
+          this.plugin.getKitManager().save();
+          this.plugin.sendMessage(player, "kit-updated", Map.of("{kit}", kit.getDisplayName()));
+          this.plugin.getGuiManager().refreshOpenGuis(kit);
+          break;
+        }
+      case "toggle-welcome":
+        {
+          if (args.length < 2) {
+            return false;
+          }
+          Kit kit = this.getKitOrMsg(player, args[1]);
+          if (kit == null) {
+            return true;
+          }
+          kit.setWelcome(!kit.isWelcome());
+          this.plugin.getKitManager().save();
+          this.plugin.sendMessage(player, "kit-updated", Map.of("{kit}", kit.getDisplayName()));
+          this.plugin.getGuiManager().refreshOpenGuis(kit);
+          break;
+        }
+      case "duplicate":
+        {
+          if (args.length < 2) {
+            return false;
+          }
+          Kit kit = this.getKitOrMsg(player, args[1]);
+          if (kit == null) {
+            return true;
+          }
+          String newId =
+              args.length >= 3
+                  ? this.sanitizeId(args[2])
+                  : this.nextCopyId(kit.getId());
+          if (newId.isEmpty()) {
+            this.plugin.sendMessage(player, "input-invalid-id");
+            return true;
+          }
+          if (this.plugin.getKitManager().getKit(newId).isPresent()) {
+            this.plugin.sendMessage(player, "kit-exists", Map.of("{kit}", newId));
+            return true;
+          }
+          Kit copy = kit.duplicate(newId);
+          this.plugin.getKitManager().upsert(copy);
+          this.plugin.getKitManager().save();
+          this.plugin.sendMessage(player, "kit-duplicated", Map.of("{kit}", copy.getId()));
+          this.plugin.getGuiManager().refreshOpenGuis(copy);
+          break;
+        }
+      case "resetall":
+        {
+          if (args.length < 2) {
+            return false;
+          }
+          Kit kit = this.getKitOrMsg(player, args[1]);
+          if (kit == null) {
+            return true;
+          }
+          this.plugin.getCooldownManager().resetAllForKit(kit.getId());
+          this.plugin.sendMessage(player, "kit-cooldowns-reset", Map.of("{kit}", kit.getId()));
+          break;
+        }
+      case "stats":
+      case "statystyki":
+        {
+          if (args.length >= 2) {
+            Kit kit = this.getKitOrMsg(player, args[1]);
+            if (kit == null) {
+              return true;
+            }
+            Map<String, String> ph = new java.util.HashMap<String, String>();
+            ph.put("{kit}", kit.getDisplayName());
+            ph.put("{claims}", String.valueOf(this.plugin.getStatsManager().getKitClaims(kit.getId())));
+            this.plugin.sendMessage(player, "kit-stats-line", ph);
+            break;
+          }
+          this.plugin.getGuiManager().openStats(player);
+          break;
+        }
+      case "history":
+      case "historia":
+        {
+          this.plugin.getGuiManager().openHistory(player);
+          break;
+        }
+      case "top":
+      case "ranking":
+        {
+          this.plugin.getGuiManager().openTop(player);
+          break;
+        }
+      case "search":
+      case "szukaj":
+        {
+          if (args.length < 2) {
+            GuiSession.setSearch(player.getUniqueId(), "");
+            this.plugin.sendMessage(player, "search-cleared");
+          } else {
+            String query = this.join(args, 1);
+            GuiSession.setSearch(player.getUniqueId(), query);
+            Map<String, String> ph = Map.of("{query}", query);
+            this.plugin.sendMessage(player, "search-applied", ph);
+          }
+          this.plugin.getGuiManager().openAdmin(player);
+          break;
+        }
+      case "clearhistory":
+        {
+          this.plugin.getStatsManager().clearHistory();
+          this.plugin.getStatsManager().save();
+          this.plugin.sendMessage(player, "history-cleared");
+          break;
+        }
+      case "clearstats":
+        {
+          if (args.length >= 2 && !args[1].equalsIgnoreCase("all")) {
+            OfflinePlayer target = Bukkit.getOfflinePlayer(args[1]);
+            this.plugin.getStatsManager().resetPlayer(target.getUniqueId());
+            this.plugin.getStatsManager().save();
+            Map<String, String> ph =
+                Map.of("{player}", target.getName() == null ? args[1] : target.getName());
+            this.plugin.sendMessage(player, "player-stats-reset", ph);
+          } else {
+            this.plugin.getStatsManager().clearHistory();
+            for (Kit kit : this.plugin.getKitManager().getKits()) {
+              this.plugin.getStatsManager().clearKit(kit.getId());
+            }
+            this.plugin.getStatsManager().save();
+            this.plugin.sendMessage(player, "stats-cleared");
+          }
           break;
         }
       case "reload":
@@ -835,16 +1161,43 @@ public class KitsCommand implements CommandExecutor, TabCompleter {
                 "setcooldown",
                 "setslot",
                 "setrank",
+                "setprice",
+                "setcategory",
+                "setrarity",
+                "setclaimlimit",
+                "toggle-onetime",
+                "toggle-enabled",
+                "toggle-hidden",
+                "toggle-welcome",
+                "duplicate",
+                "resetall",
                 "animation",
                 "animacja",
                 "claimanim",
                 "animkit",
                 "kitanim",
-                "toggle-onetime",
+                "stats",
+                "history",
+                "top",
+                "search",
+                "clearhistory",
+                "clearstats",
                 "reload",
                 "give",
                 "reset")
-            : List.of("open", "preview", "reload", "give", "reset");
+            : List.of(
+                "open",
+                "preview",
+                "reload",
+                "give",
+                "reset",
+                "favorites",
+                "favorite",
+                "stats",
+                "history",
+                "top",
+                "settings",
+                "search");
     if (args.length == 1) {
       return subs.stream()
           .filter(s -> s.startsWith(args[0].toLowerCase(Locale.ROOT)))
@@ -862,12 +1215,23 @@ public class KitsCommand implements CommandExecutor, TabCompleter {
             || args[0].equalsIgnoreCase("setcooldown")
             || args[0].equalsIgnoreCase("setslot")
             || args[0].equalsIgnoreCase("setrank")
+            || args[0].equalsIgnoreCase("setprice")
+            || args[0].equalsIgnoreCase("setcategory")
+            || args[0].equalsIgnoreCase("setrarity")
+            || args[0].equalsIgnoreCase("setclaimlimit")
+            || args[0].equalsIgnoreCase("toggle-onetime")
+            || args[0].equalsIgnoreCase("toggle-enabled")
+            || args[0].equalsIgnoreCase("toggle-hidden")
+            || args[0].equalsIgnoreCase("toggle-welcome")
+            || args[0].equalsIgnoreCase("duplicate")
+            || args[0].equalsIgnoreCase("resetall")
+            || args[0].equalsIgnoreCase("favorite")
+            || args[0].equalsIgnoreCase("ulubiony")
             || args[0].equalsIgnoreCase("animation")
             || args[0].equalsIgnoreCase("animacja")
             || args[0].equalsIgnoreCase("claimanim")
             || args[0].equalsIgnoreCase("animkit")
-            || args[0].equalsIgnoreCase("kitanim")
-            || args[0].equalsIgnoreCase("toggle-onetime"))) {
+            || args[0].equalsIgnoreCase("kitanim"))) {
       return this.plugin.getKitManager().getKits().stream()
           .map(Kit::getId)
           .filter(s -> s.startsWith(args[1].toLowerCase(Locale.ROOT)))
@@ -956,6 +1320,21 @@ public class KitsCommand implements CommandExecutor, TabCompleter {
           .filter(s -> s.toLowerCase(Locale.ROOT).startsWith(args[2].toLowerCase(Locale.ROOT)))
           .collect(Collectors.toList());
     }
+    if (args.length == 3 && args[0].equalsIgnoreCase("setrarity")) {
+      List<String> suggestions = List.of("none", "common", "uncommon", "rare", "epic", "legendary");
+      String prefix = args[2].toLowerCase(Locale.ROOT);
+      return suggestions.stream().filter(s -> s.startsWith(prefix)).collect(Collectors.toList());
+    }
+    if (args.length == 3 && args[0].equalsIgnoreCase("setclaimlimit")) {
+      List<String> suggestions = List.of("none", "1", "3", "5", "10");
+      String prefix = args[2].toLowerCase(Locale.ROOT);
+      return suggestions.stream().filter(s -> s.startsWith(prefix)).collect(Collectors.toList());
+    }
+    if (args.length == 3 && args[0].equalsIgnoreCase("setprice")) {
+      List<String> suggestions = List.of("0", "100", "500", "1000", "5000");
+      String prefix = args[2].toLowerCase(Locale.ROOT);
+      return suggestions.stream().filter(s -> s.startsWith(prefix)).collect(Collectors.toList());
+    }
     if (args.length == 3
         && (args[0].equalsIgnoreCase("give") || args[0].equalsIgnoreCase("reset"))) {
       return Bukkit.getOnlinePlayers().stream()
@@ -1025,6 +1404,24 @@ public class KitsCommand implements CommandExecutor, TabCompleter {
     } catch (NumberFormatException ex) {
       return null;
     }
+  }
+
+  private Double parseDouble(String value) {
+    try {
+      return Double.parseDouble(value);
+    } catch (NumberFormatException ex) {
+      return null;
+    }
+  }
+
+  private String nextCopyId(String base) {
+    String candidate = base + "_copy";
+    int index = 2;
+    while (this.plugin.getKitManager().getKit(candidate).isPresent()) {
+      candidate = base + "_copy" + index;
+      index++;
+    }
+    return candidate;
   }
 
   private String sanitizeId(String value) {

@@ -82,6 +82,14 @@ public class DatabaseManager {
     return this.provider.resetAllForKit(kitId);
   }
 
+  public CompletableFuture<Void> resetAllForPlayer(UUID uuid) {
+    return this.provider.resetAllForPlayer(uuid);
+  }
+
+  public CompletableFuture<Void> resetAll() {
+    return this.provider.resetAll();
+  }
+
   public CompletableFuture<Void> close() {
     return this.provider == null
         ? CompletableFuture.completedFuture(null)

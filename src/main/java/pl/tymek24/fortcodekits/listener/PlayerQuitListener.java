@@ -4,6 +4,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerQuitEvent;
 import pl.tymek24.fortcodekits.FortCodeKits;
+import pl.tymek24.fortcodekits.gui.GuiSession;
 
 public class PlayerQuitListener implements Listener {
   private final FortCodeKits plugin;
@@ -20,5 +21,7 @@ public class PlayerQuitListener implements Listener {
     }
     this.plugin.getCooldownManager().unloadPlayer(event.getPlayer().getUniqueId());
     this.plugin.getChatInputListener().clear(event.getPlayer().getUniqueId());
+    this.plugin.clearWelcomeCache(event.getPlayer().getUniqueId());
+    GuiSession.clear(event.getPlayer().getUniqueId());
   }
 }

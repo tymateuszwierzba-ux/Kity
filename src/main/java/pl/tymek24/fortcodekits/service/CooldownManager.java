@@ -11,17 +11,19 @@ import pl.tymek24.fortcodekits.model.Kit;
 
 public class CooldownManager {
   private final DatabaseManager databaseManager;
+  private final StatsManager statsManager;
   private final Map<UUID, Map<String, DatabaseProvider.CooldownRecord>> cache =
       new ConcurrentHashMap<UUID, Map<String, DatabaseProvider.CooldownRecord>>();
 
-  public CooldownManager(DatabaseManager databaseManager) {
+  public CooldownManager(DatabaseManager databaseManager, StatsManager statsManager) {
     this.databaseManager = databaseManager;
+    this.statsManager = statsManager;
   }
 
   public void loadPlayer(UUID uuid) {
     this.databaseManager
         .loadPlayerData(uuid)
-        .thenAccept(map -> this.cache.put(uuid, new ConcurrentHashMap(map)));
+        .thenAccept(map -> this.cache.put(uuid, new ConcurrentHashMap<String, DatabaseProvider.CooldownRecord>(map)));
   }
 
   public void unloadPlayer(UUID uuid) {
@@ -30,8 +32,7 @@ public class CooldownManager {
 
   public long getRemaining(UUID uuid, String kitId) {
     DatabaseProvider.CooldownRecord rec =
-        (DatabaseProvider.CooldownRecord)
-            this.cache.getOrDefault(uuid, Map.of()).get(kitId.toLowerCase());
+        this.cache.getOrDefault(uuid, Map.of()).get(kitId.toLowerCase());
     if (rec == null) {
       return 0L;
     }
@@ -44,22 +45,67 @@ public class CooldownManager {
   }
 
   public boolean canClaim(Player player, Kit kit) {
-    if (kit.isOneTime()) {
-      return !this.hasClaimed(player.getUniqueId(), kit.getId());
+    UUID uuid = player.getUniqueId();
+    if (kit.isOneTime() && this.hasClaimed(uuid, kit.getId())) {
+      return false;
     }
-    return this.getRemaining(player.getUniqueId(), kit.getId()) <= 0L;
+    if (this.getRemaining(uuid, kit.getId()) > 0L) {
+      return false;
+    }
+    if (kit.getClaimCountLimit() != null) {
+      int used = this.statsManager.getPlayerKitClaims(uuid, kit.getId());
+      if (used >= kit.getClaimCountLimit()) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  public String denyReason(Player player, Kit kit) {
+    UUID uuid = player.getUniqueId();
+    if (kit.isOneTime() && this.hasClaimed(uuid, kit.getId())) {
+      return "one-time";
+    }
+    if (this.getRemaining(uuid, kit.getId()) > 0L) {
+      return "cooldown";
+    }
+    if (kit.getClaimCountLimit() != null
+        && this.statsManager.getPlayerKitClaims(uuid, kit.getId()) >= kit.getClaimCountLimit()) {
+      return "claim-limit";
+    }
+    return "ok";
   }
 
   public void recordClaim(UUID uuid, Kit kit) {
     long next = Instant.now().getEpochSecond() + kit.getCooldownSeconds();
     this.cache
-        .computeIfAbsent(uuid, v -> new ConcurrentHashMap())
+        .computeIfAbsent(uuid, v -> new ConcurrentHashMap<String, DatabaseProvider.CooldownRecord>())
         .put(kit.getId(), new DatabaseProvider.CooldownRecord(next));
     this.databaseManager.saveCooldown(uuid, kit.getId(), next);
   }
 
   public void reset(UUID uuid, String kitId) {
-    this.cache.computeIfAbsent(uuid, v -> new ConcurrentHashMap()).remove(kitId.toLowerCase());
+    this.cache
+        .computeIfAbsent(uuid, v -> new ConcurrentHashMap<String, DatabaseProvider.CooldownRecord>())
+        .remove(kitId.toLowerCase());
     this.databaseManager.resetCooldown(uuid, kitId);
+  }
+
+  public void resetAllForKit(String kitId) {
+    String id = kitId.toLowerCase();
+    for (Map<String, DatabaseProvider.CooldownRecord> inner : this.cache.values()) {
+      inner.remove(id);
+    }
+    this.databaseManager.resetAllForKit(id);
+  }
+
+  public void resetAllForPlayer(UUID uuid) {
+    this.cache.remove(uuid);
+    this.databaseManager.resetAllForPlayer(uuid);
+  }
+
+  public void resetEverything() {
+    this.cache.clear();
+    this.databaseManager.resetAll();
   }
 }

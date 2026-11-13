@@ -1,9 +1,11 @@
 package pl.tymek24.fortcodekits.gui;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
+import pl.tymek24.fortcodekits.model.SortMode;
 
 public class GuiHolder implements InventoryHolder {
   private final GuiType type;
@@ -12,6 +14,10 @@ public class GuiHolder implements InventoryHolder {
   private final String kitId;
   private final int page;
   private final GuiType returnType;
+  private String confirmAction;
+  private String categoryFilter;
+  private String searchQuery;
+  private SortMode sortMode;
   private Inventory inventory;
 
   public GuiHolder(
@@ -27,6 +33,10 @@ public class GuiHolder implements InventoryHolder {
     this.kitId = kitId;
     this.page = page;
     this.returnType = returnType;
+    this.confirmAction = null;
+    this.categoryFilter = null;
+    this.searchQuery = null;
+    this.sortMode = SortMode.DEFAULT;
   }
 
   public GuiType getType() {
@@ -51,6 +61,51 @@ public class GuiHolder implements InventoryHolder {
 
   public GuiType getReturnType() {
     return this.returnType;
+  }
+
+  public String getConfirmAction() {
+    return this.confirmAction;
+  }
+
+  public void setConfirmAction(String confirmAction) {
+    this.confirmAction = confirmAction;
+  }
+
+  public String getCategoryFilter() {
+    return this.categoryFilter;
+  }
+
+  public void setCategoryFilter(String categoryFilter) {
+    this.categoryFilter = categoryFilter;
+  }
+
+  public String getSearchQuery() {
+    return this.searchQuery;
+  }
+
+  public void setSearchQuery(String searchQuery) {
+    this.searchQuery = searchQuery;
+  }
+
+  public SortMode getSortMode() {
+    return this.sortMode == null ? SortMode.DEFAULT : this.sortMode;
+  }
+
+  public void setSortMode(SortMode sortMode) {
+    this.sortMode = sortMode == null ? SortMode.DEFAULT : sortMode;
+  }
+
+  public Map<String, Object> snapshot() {
+    Map<String, Object> map = new HashMap<String, Object>();
+    map.put("type", this.type.name());
+    map.put("page", this.page);
+    map.put("kitId", this.kitId);
+    map.put("returnType", this.returnType == null ? null : this.returnType.name());
+    map.put("confirmAction", this.confirmAction);
+    map.put("category", this.categoryFilter);
+    map.put("search", this.searchQuery);
+    map.put("sort", this.getSortMode().key());
+    return map;
   }
 
   public void setInventory(Inventory inventory) {

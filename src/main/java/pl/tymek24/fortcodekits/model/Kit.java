@@ -16,6 +16,13 @@ public class Kit {
   private Integer guiSlot;
   private String requiredGroup;
   private String feedbackType;
+  private String category;
+  private double price;
+  private KitRarity rarity;
+  private boolean enabled;
+  private boolean hidden;
+  private boolean welcome;
+  private Integer claimCountLimit;
   private Boolean claimAnimationEnabled;
   private String claimAnimationMode;
   private Integer claimAnimationIntervalTicks;
@@ -31,13 +38,20 @@ public class Kit {
   private List<ItemStack> items;
 
   public Kit(String id) {
-    this.id = id.toLowerCase();
+    this.id = id.toLowerCase(Locale.ROOT);
     this.displayName = id;
     this.cooldownSeconds = 0L;
     this.oneTime = false;
     this.guiSlot = null;
     this.requiredGroup = null;
     this.feedbackType = null;
+    this.category = null;
+    this.price = 0.0D;
+    this.rarity = null;
+    this.enabled = true;
+    this.hidden = false;
+    this.welcome = false;
+    this.claimCountLimit = null;
     this.claimAnimationEnabled = null;
     this.claimAnimationMode = null;
     this.claimAnimationIntervalTicks = null;
@@ -64,6 +78,14 @@ public class Kit {
     kit.requiredGroup = Kit.normalizeGroup(rawGroup);
     String rawFeedback = section.getString("feedback-type", section.getString("message-type", ""));
     kit.feedbackType = Kit.normalizeFeedbackType(rawFeedback);
+    kit.category = Kit.normalizeCategory(section.getString("category", ""));
+    kit.price = Math.max(0.0D, section.getDouble("price", 0.0D));
+    kit.rarity = KitRarity.from(section.getString("rarity", ""));
+    kit.enabled = section.getBoolean("enabled", true);
+    kit.hidden = section.getBoolean("hidden", false);
+    kit.welcome = section.getBoolean("welcome", false);
+    int limit = section.getInt("claim-limit", -1);
+    kit.claimCountLimit = limit < 0 ? null : Integer.valueOf(limit);
     ConfigurationSection claimAnimation = section.getConfigurationSection("claim-animation");
     if (claimAnimation != null) {
       if (claimAnimation.contains("enabled")) {
@@ -112,42 +134,44 @@ public class Kit {
       kit.icon = configIcon;
     }
     ArrayList<ItemStack> loaded = new ArrayList<ItemStack>();
-    List rawItems = section.getList("items", new ArrayList());
+    List<?> rawItems = section.getList("items", new ArrayList<>());
     for (Object o : rawItems) {
       if (!(o instanceof ItemStack)) continue;
-      ItemStack stack = (ItemStack) o;
-      loaded.add(stack);
+      loaded.add((ItemStack) o);
     }
     kit.items = loaded;
     return kit;
   }
 
   public void saveTo(ConfigurationSection section) {
-    section.set("display-name", (Object) this.displayName);
-    section.set("cooldown", (Object) this.cooldownSeconds);
-    section.set("one-time", (Object) this.oneTime);
-    section.set("gui-slot", (Object) this.guiSlot);
-    section.set("rank", (Object) this.requiredGroup);
-    section.set("feedback-type", (Object) this.feedbackType);
-    section.set("claim-animation.enabled", (Object) this.claimAnimationEnabled);
-    section.set("claim-animation.mode", (Object) this.claimAnimationMode);
-    section.set("claim-animation.interval-ticks", (Object) this.claimAnimationIntervalTicks);
-    section.set("claim-animation.batch-size", (Object) this.claimAnimationBatchSize);
-    section.set(
-        "claim-animation.interval-jitter-ticks", (Object) this.claimAnimationIntervalJitterTicks);
-    section.set("claim-animation.start-delay-ticks", (Object) this.claimAnimationStartDelayTicks);
-    section.set("claim-animation.split-stacks", (Object) this.claimAnimationSplitStacks);
-    section.set("claim-animation.max-items", (Object) this.claimAnimationMaxItems);
-    section.set(
-        "claim-animation.temporary-glow.enabled",
-        (Object) this.claimAnimationTemporaryGlowEnabled);
+    section.set("display-name", this.displayName);
+    section.set("cooldown", this.cooldownSeconds);
+    section.set("one-time", this.oneTime);
+    section.set("gui-slot", this.guiSlot);
+    section.set("rank", this.requiredGroup);
+    section.set("feedback-type", this.feedbackType);
+    section.set("category", this.category);
+    section.set("price", this.price);
+    section.set("rarity", this.rarity == null ? null : this.rarity.key());
+    section.set("enabled", this.enabled);
+    section.set("hidden", this.hidden);
+    section.set("welcome", this.welcome);
+    section.set("claim-limit", this.claimCountLimit);
+    section.set("claim-animation.enabled", this.claimAnimationEnabled);
+    section.set("claim-animation.mode", this.claimAnimationMode);
+    section.set("claim-animation.interval-ticks", this.claimAnimationIntervalTicks);
+    section.set("claim-animation.batch-size", this.claimAnimationBatchSize);
+    section.set("claim-animation.interval-jitter-ticks", this.claimAnimationIntervalJitterTicks);
+    section.set("claim-animation.start-delay-ticks", this.claimAnimationStartDelayTicks);
+    section.set("claim-animation.split-stacks", this.claimAnimationSplitStacks);
+    section.set("claim-animation.max-items", this.claimAnimationMaxItems);
+    section.set("claim-animation.temporary-glow.enabled", this.claimAnimationTemporaryGlowEnabled);
     section.set(
         "claim-animation.temporary-glow.remove-after-ticks",
-        (Object) this.claimAnimationTemporaryGlowRemoveAfterTicks);
+        this.claimAnimationTemporaryGlowRemoveAfterTicks);
     section.set(
-        "claim-animation.temporary-glow.enchantment",
-        (Object) this.claimAnimationTemporaryGlowEnchantment);
-    section.set("icon", (Object) this.icon);
+        "claim-animation.temporary-glow.enchantment", this.claimAnimationTemporaryGlowEnchantment);
+    section.set("icon", this.icon);
     section.set("items", this.items);
   }
 
@@ -156,14 +180,52 @@ public class Kit {
     String iconName =
         meta != null && meta.hasDisplayName() ? meta.getDisplayName() : this.icon.getType().name();
     return String.format(
-        "%s | cooldown=%ss | oneTime=%s | items=%d | icon=%s | slot=%s | rank=%s",
+        "%s | cd=%ss | oneTime=%s | price=%.2f | rarity=%s | cat=%s | items=%d | icon=%s | slot=%s | rank=%s",
         this.displayName,
         this.cooldownSeconds,
         this.oneTime,
+        this.price,
+        this.rarity == null ? "-" : this.rarity.key(),
+        this.category == null ? "-" : this.category,
         this.items.size(),
         iconName,
         this.guiSlot == null ? "-" : this.guiSlot,
         this.requiredGroup == null ? "-" : this.requiredGroup);
+  }
+
+  public Kit duplicate(String newId) {
+    Kit copy = new Kit(newId);
+    copy.displayName = this.displayName;
+    copy.cooldownSeconds = this.cooldownSeconds;
+    copy.oneTime = this.oneTime;
+    copy.guiSlot = null;
+    copy.requiredGroup = this.requiredGroup;
+    copy.feedbackType = this.feedbackType;
+    copy.category = this.category;
+    copy.price = this.price;
+    copy.rarity = this.rarity;
+    copy.enabled = this.enabled;
+    copy.hidden = this.hidden;
+    copy.welcome = false;
+    copy.claimCountLimit = this.claimCountLimit;
+    copy.claimAnimationEnabled = this.claimAnimationEnabled;
+    copy.claimAnimationMode = this.claimAnimationMode;
+    copy.claimAnimationIntervalTicks = this.claimAnimationIntervalTicks;
+    copy.claimAnimationBatchSize = this.claimAnimationBatchSize;
+    copy.claimAnimationIntervalJitterTicks = this.claimAnimationIntervalJitterTicks;
+    copy.claimAnimationStartDelayTicks = this.claimAnimationStartDelayTicks;
+    copy.claimAnimationSplitStacks = this.claimAnimationSplitStacks;
+    copy.claimAnimationMaxItems = this.claimAnimationMaxItems;
+    copy.claimAnimationTemporaryGlowEnabled = this.claimAnimationTemporaryGlowEnabled;
+    copy.claimAnimationTemporaryGlowRemoveAfterTicks =
+        this.claimAnimationTemporaryGlowRemoveAfterTicks;
+    copy.claimAnimationTemporaryGlowEnchantment = this.claimAnimationTemporaryGlowEnchantment;
+    copy.icon = this.icon.clone();
+    copy.items = new ArrayList<ItemStack>();
+    for (ItemStack item : this.items) {
+      copy.items.add(item.clone());
+    }
+    return copy;
   }
 
   public String getId() {
@@ -216,6 +278,62 @@ public class Kit {
 
   public void setFeedbackType(String feedbackType) {
     this.feedbackType = Kit.normalizeFeedbackType(feedbackType);
+  }
+
+  public String getCategory() {
+    return this.category;
+  }
+
+  public void setCategory(String category) {
+    this.category = Kit.normalizeCategory(category);
+  }
+
+  public double getPrice() {
+    return this.price;
+  }
+
+  public void setPrice(double price) {
+    this.price = Math.max(0.0D, price);
+  }
+
+  public KitRarity getRarity() {
+    return this.rarity;
+  }
+
+  public void setRarity(KitRarity rarity) {
+    this.rarity = rarity;
+  }
+
+  public boolean isEnabled() {
+    return this.enabled;
+  }
+
+  public void setEnabled(boolean enabled) {
+    this.enabled = enabled;
+  }
+
+  public boolean isHidden() {
+    return this.hidden;
+  }
+
+  public void setHidden(boolean hidden) {
+    this.hidden = hidden;
+  }
+
+  public boolean isWelcome() {
+    return this.welcome;
+  }
+
+  public void setWelcome(boolean welcome) {
+    this.welcome = welcome;
+  }
+
+  public Integer getClaimCountLimit() {
+    return this.claimCountLimit;
+  }
+
+  public void setClaimCountLimit(Integer claimCountLimit) {
+    this.claimCountLimit = claimCountLimit;
   }
 
   public Boolean getClaimAnimationEnabled() {
@@ -379,12 +497,19 @@ public class Kit {
     return value;
   }
 
+  private static String normalizeCategory(String raw) {
+    if (raw == null) {
+      return null;
+    }
+    String value = raw.trim().toLowerCase(Locale.ROOT).replace(' ', '-');
+    return value.isEmpty() ? null : value;
+  }
+
   private static String normalizeClaimAnimationMode(String raw) {
     if (raw == null) {
       return null;
     }
-    String value =
-        raw.trim().toLowerCase(Locale.ROOT).replace(' ', '_').replace('-', '_');
+    String value = raw.trim().toLowerCase(Locale.ROOT).replace(' ', '_').replace('-', '_');
     if (value.isEmpty() || value.equals("default")) {
       return null;
     }

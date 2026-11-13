@@ -17,5 +17,9 @@ public interface DatabaseProvider {
 
   public CompletableFuture<Void> resetAllForKit(String var1);
 
+  public CompletableFuture<Void> resetAllForPlayer(UUID var1);
+
+  public CompletableFuture<Void> resetAll();
+
   public record CooldownRecord(long nextClaimAt) {}
 }

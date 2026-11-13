@@ -16,11 +16,9 @@ import pl.tymek24.fortcodekits.FortCodeKits;
 import pl.tymek24.fortcodekits.integration.LuckPermsHook;
 import pl.tymek24.fortcodekits.model.Kit;
 
-public class RankGUI {
-  private final FortCodeKits plugin;
-
+public class RankGUI extends AbstractGui {
   public RankGUI(FortCodeKits plugin) {
-    this.plugin = plugin;
+    super(plugin);
   }
 
   public void open(Player player, Kit kit) {
@@ -28,134 +26,63 @@ public class RankGUI {
   }
 
   public void open(Player player, Kit kit, int page) {
-    int pages;
     if (!LuckPermsHook.isLuckPermsAvailable()) {
       this.plugin.sendMessage(player, "luckperms-missing");
       this.plugin.getGuiManager().openEditor(player, kit);
       return;
     }
-    GuiConfig gui = this.plugin.getGuiManager().getGuiConfig();
+    GuiConfig gui = this.cfg();
     int size = gui.getSize("rank.size", 54);
-    String rawTitle = gui.getConfig().getString("rank.title", "&bRangi: {kit_display}");
-    String title = this.plugin.formatText(rawTitle.replace("{kit_display}", kit.getDisplayName()));
-    HashMap<Integer, String> slotToGroup = new HashMap<Integer, String>();
-    GuiHolder holder =
-        new GuiHolder(GuiType.RANK, slotToGroup, null, kit.getId(), page, GuiType.EDITOR);
-    Inventory inv = Bukkit.createInventory((InventoryHolder) holder, (int) size, (String) title);
+    String title = this.title("rank.title", "&bRangi: {kit_display}", Map.of("{kit_display}", kit.getDisplayName()));
+    Map<Integer, String> slotToGroup = new HashMap<Integer, String>();
+    GuiHolder holder = new GuiHolder(GuiType.RANK, slotToGroup, null, kit.getId(), page, GuiType.EDITOR);
+    Inventory inv = Bukkit.createInventory((InventoryHolder) holder, size, title);
     holder.setInventory(inv);
-    this.applyFiller(inv, gui, "rank.filler");
-    ArrayList<Group> groups = new ArrayList<Group>(LuckPermsHook.getGroupsSorted());
-    List<Integer> groupSlots = gui.getSlots("rank.group-slots");
-    ArrayList<Integer> availableSlots = new ArrayList<Integer>();
-    for (int slot : groupSlots) {
-      if (slot < 0 || slot >= size) continue;
-      availableSlots.add(slot);
+    this.fill(inv, "rank.filler");
+    List<Integer> groupSlots = new ArrayList<Integer>();
+    for (int slot : gui.getSlots("rank.group-slots")) {
+      if (slot >= 0 && slot < size) {
+        groupSlots.add(slot);
+      }
     }
-    int perPage = availableSlots.size();
-    int n = pages = perPage == 0 ? 1 : (int) Math.ceil((double) groups.size() / (double) perPage);
+    ArrayList<Group> groups = new ArrayList<Group>(LuckPermsHook.getGroupsSorted());
+    int perPage = groupSlots.size();
+    int pages = perPage == 0 ? 1 : (int) Math.ceil((double) groups.size() / (double) perPage);
     if (pages <= 0) {
       pages = 1;
     }
     int safePage = Math.max(1, Math.min(page, pages));
     int start = (safePage - 1) * perPage;
     int end = Math.min(groups.size(), start + perPage);
-    int slotIndex = 0;
-    ConfigurationSection groupItemSection =
-        gui.getConfig().getConfigurationSection("rank.group-item");
-    for (int i = start; i < end && slotIndex < availableSlots.size(); ++i) {
-      int slot = (Integer) availableSlots.get(slotIndex++);
-      Group group = (Group) groups.get(i);
-      ItemStack item = this.buildGroupItem(group, kit, groupItemSection, gui);
+    ConfigurationSection groupItem = gui.getConfig().getConfigurationSection("rank.group-item");
+    for (int i = start, slotIndex = 0; i < end && slotIndex < groupSlots.size(); i++, slotIndex++) {
+      Group group = groups.get(i);
+      int slot = groupSlots.get(slotIndex);
+      ItemStack item = this.buildGroupItem(group, kit, groupItem);
+      if (item == null) {
+        continue;
+      }
       inv.setItem(slot, item);
       slotToGroup.put(slot, group.getName());
     }
-    this.placeNavigation(inv, gui, "rank.navigation", safePage, pages);
-    this.placeNone(inv, gui, "rank.none");
-    this.placeBack(inv, gui, "rank.back");
+    this.navigation(inv, "rank.navigation", safePage, pages);
+    this.button(inv, "rank.none", Map.of());
+    this.button(inv, "rank.back", Map.of());
     player.openInventory(inv);
-    this.plugin.playConfiguredSound(player, "sounds.open");
+    this.openSound(player);
   }
 
-  private void applyFiller(Inventory inv, GuiConfig gui, String path) {
-    if (!gui.getConfig().getBoolean(path + ".enabled", false)) {
-      return;
-    }
-    ItemStack filler = gui.buildItem(path + ".item", Map.of());
-    if (filler == null) {
-      return;
-    }
-    for (int slot : gui.getSlots(path + ".slots")) {
-      if (slot < 0 || slot >= inv.getSize()) continue;
-      inv.setItem(slot, filler);
-    }
-  }
-
-  private ItemStack buildGroupItem(
-      Group group, Kit kit, ConfigurationSection section, GuiConfig gui) {
-    String prefixDisplay;
-    HashMap<String, String> placeholders = new HashMap<String, String>();
+  private ItemStack buildGroupItem(Group group, Kit kit, ConfigurationSection section) {
     String groupName = group.getName();
-    String prefixRaw = LuckPermsHook.getGroupPrefix(groupName);
-    String display =
-        prefixDisplay =
-            prefixRaw.isEmpty()
-                ? gui.getConfig().getString("text.rank-prefix-none", "&7-")
-                : prefixRaw;
-    String selected =
-        kit.getRequiredGroup() != null && kit.getRequiredGroup().equalsIgnoreCase(groupName)
-            ? gui.getConfig().getString("text.rank-selected", "&a(aktualna)")
-            : "";
-    placeholders.put("{rank_name}", groupName);
-    placeholders.put("{rank_prefix}", prefixDisplay);
-    placeholders.put("{rank_display}", display);
-    placeholders.put("{selected}", selected);
-    if (section == null) {
-      return new ItemStack(Material.NAME_TAG);
-    }
-    return gui.buildItem(section, placeholders);
-  }
-
-  private void placeNavigation(Inventory inv, GuiConfig gui, String path, int page, int pages) {
-    ItemStack next;
-    ItemStack prev;
-    HashMap<String, String> placeholders = new HashMap<String, String>();
-    placeholders.put("{page}", String.valueOf(page));
-    placeholders.put("{pages}", String.valueOf(pages));
-    int prevSlot = gui.getConfig().getInt(path + ".prev.slot", -1);
-    int nextSlot = gui.getConfig().getInt(path + ".next.slot", -1);
-    if (page > 1
-        && prevSlot >= 0
-        && prevSlot < inv.getSize()
-        && (prev = gui.buildItem(path + ".prev.item", placeholders)) != null) {
-      inv.setItem(prevSlot, prev);
-    }
-    if (page < pages
-        && nextSlot >= 0
-        && nextSlot < inv.getSize()
-        && (next = gui.buildItem(path + ".next.item", placeholders)) != null) {
-      inv.setItem(nextSlot, next);
-    }
-  }
-
-  private void placeNone(Inventory inv, GuiConfig gui, String path) {
-    int slot = gui.getConfig().getInt(path + ".slot", -1);
-    if (slot < 0 || slot >= inv.getSize()) {
-      return;
-    }
-    ItemStack item = gui.buildItem(path + ".item", Map.of());
-    if (item != null) {
-      inv.setItem(slot, item);
-    }
-  }
-
-  private void placeBack(Inventory inv, GuiConfig gui, String path) {
-    int slot = gui.getConfig().getInt(path + ".slot", -1);
-    if (slot < 0 || slot >= inv.getSize()) {
-      return;
-    }
-    ItemStack item = gui.buildItem(path + ".item", Map.of());
-    if (item != null) {
-      inv.setItem(slot, item);
-    }
+    String prefix = LuckPermsHook.getGroupPrefix(groupName);
+    String display = prefix.isEmpty() ? this.text("text.rank-prefix-none", "&7-") : prefix;
+    boolean selected = kit.getRequiredGroup() != null && kit.getRequiredGroup().equalsIgnoreCase(groupName);
+    Map<String, String> ph = this.ph();
+    ph.put("{rank_name}", groupName);
+    ph.put("{rank_prefix}", prefix);
+    ph.put("{rank_display}", display);
+    ph.put("{selected}", selected ? this.text("text.rank-selected", "&a(aktualna)") : "");
+    ItemStack item = this.sectionItem(section, ph);
+    return item != null ? item : new ItemStack(Material.NAME_TAG);
   }
 }

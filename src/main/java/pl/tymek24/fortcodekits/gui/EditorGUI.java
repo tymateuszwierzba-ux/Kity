@@ -9,38 +9,31 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 import pl.tymek24.fortcodekits.FortCodeKits;
-import pl.tymek24.fortcodekits.integration.LuckPermsHook;
 import pl.tymek24.fortcodekits.model.Kit;
-import pl.tymek24.fortcodekits.util.TimeUtil;
 
-public class EditorGUI {
-  private final FortCodeKits plugin;
-
+public class EditorGUI extends AbstractGui {
   public EditorGUI(FortCodeKits plugin) {
-    this.plugin = plugin;
+    super(plugin);
   }
 
   public void open(Player player, Kit kit) {
-    GuiConfig gui = this.plugin.getGuiManager().getGuiConfig();
+    GuiConfig gui = this.cfg();
     int size = gui.getSize("editor.size", 54);
-    String rawTitle = gui.getConfig().getString("editor.title", "&6Edytor: {kit_display}");
-    String title = this.plugin.formatText(rawTitle.replace("{kit_display}", kit.getDisplayName()));
+    Map<String, String> ph = this.buildPlaceholders(kit);
+    String title = this.title("editor.title", "&8EDYTOR: {kit_display}", ph);
     HashMap<Integer, EditorAction> actions = new HashMap<Integer, EditorAction>();
     GuiHolder holder = new GuiHolder(GuiType.EDITOR, null, actions, kit.getId(), 0, GuiType.ADMIN);
-    Inventory inv = Bukkit.createInventory((InventoryHolder) holder, (int) size, (String) title);
+    Inventory inv = Bukkit.createInventory((InventoryHolder) holder, size, title);
     holder.setInventory(inv);
-    this.applyFiller(inv, gui, "editor.filler");
-    this.placeKitInfo(inv, gui, kit);
-    this.placeActions(inv, gui, kit, actions);
+    this.fill(inv, "editor.filler");
+    this.placeKitInfo(inv, kit, ph);
+    this.placeActions(inv, kit, ph, actions);
     player.openInventory(inv);
-    this.plugin.playConfiguredSound(player, "sounds.open");
+    this.openSound(player);
   }
 
   public void refresh(Player player, GuiHolder holder) {
-    if (holder == null || holder.getType() != GuiType.EDITOR) {
-      return;
-    }
-    if (holder.getKitId() == null) {
+    if (holder == null || holder.getType() != GuiType.EDITOR || holder.getKitId() == null) {
       return;
     }
     Inventory inv = holder.getInventory();
@@ -51,27 +44,13 @@ public class EditorGUI {
     if (kit == null) {
       return;
     }
-    GuiConfig gui = this.plugin.getGuiManager().getGuiConfig();
-    this.placeKitInfo(inv, gui, kit);
-    this.placeActions(inv, gui, kit, holder.getEditorActions());
+    Map<String, String> ph = this.buildPlaceholders(kit);
+    this.placeKitInfo(inv, kit, ph);
+    this.placeActions(inv, kit, ph, holder.getEditorActions());
   }
 
-  private void applyFiller(Inventory inv, GuiConfig gui, String path) {
-    if (!gui.getConfig().getBoolean(path + ".enabled", false)) {
-      return;
-    }
-    ItemStack filler = gui.buildItem(path + ".item", Map.of());
-    if (filler == null) {
-      return;
-    }
-    for (int slot : gui.getSlots(path + ".slots")) {
-      if (slot < 0 || slot >= inv.getSize()) continue;
-      inv.setItem(slot, filler);
-    }
-  }
-
-  private void placeKitInfo(Inventory inv, GuiConfig gui, Kit kit) {
-    ConfigurationSection section = gui.getConfig().getConfigurationSection("editor.kit-item");
+  private void placeKitInfo(Inventory inv, Kit kit, Map<String, String> ph) {
+    ConfigurationSection section = this.cfg().getConfig().getConfigurationSection("editor.kit-item");
     if (section == null) {
       return;
     }
@@ -79,48 +58,28 @@ public class EditorGUI {
     if (slot < 0 || slot >= inv.getSize()) {
       return;
     }
-    ItemStack item = gui.applyTemplate(kit.getIcon(), section, this.buildPlaceholders(gui, kit));
+    ItemStack item = this.cfg().applyTemplate(kit.getIcon(), section, ph);
     inv.setItem(slot, item);
   }
 
   private void placeActions(
-      Inventory inv, GuiConfig gui, Kit kit, Map<Integer, EditorAction> actions) {
-    ConfigurationSection root = gui.getConfig().getConfigurationSection("editor.actions");
+      Inventory inv, Kit kit, Map<String, String> ph, Map<Integer, EditorAction> actions) {
+    ConfigurationSection root = this.cfg().getConfig().getConfigurationSection("editor.actions");
     if (root == null) {
       return;
     }
-    Map<String, String> placeholders = this.buildPlaceholders(gui, kit);
     for (String key : root.getKeys(false)) {
-      EditorAction action;
-      ItemStack item;
-      int slot;
       ConfigurationSection section = root.getConfigurationSection(key);
-      if (section == null
-          || (slot = section.getInt("slot", -1)) < 0
-          || slot >= inv.getSize()
-          || (item = gui.buildItem(section.getCurrentPath() + ".item", placeholders)) == null
-          || (action = this.mapAction(key)) == null) continue;
+      if (section == null) continue;
+      int slot = section.getInt("slot", -1);
+      if (slot < 0 || slot >= inv.getSize()) continue;
+      EditorAction action = this.mapAction(key);
+      if (action == null) continue;
+      ItemStack item = this.sectionItem(section, ph);
+      if (item == null) continue;
       inv.setItem(slot, item);
       actions.put(slot, action);
     }
-  }
-
-  private Map<String, String> buildPlaceholders(GuiConfig gui, Kit kit) {
-    HashMap<String, String> placeholders = new HashMap<String, String>();
-    placeholders.put("{kit_id}", kit.getId());
-    placeholders.put("{kit_display}", kit.getDisplayName());
-    placeholders.put("{cooldown}", TimeUtil.formatDuration(kit.getCooldownSeconds()));
-    placeholders.put("{status}", "");
-    placeholders.put("{slot}", kit.getGuiSlot() == null ? "-" : String.valueOf(kit.getGuiSlot()));
-    placeholders.put("{items}", String.valueOf(kit.getItems().size()));
-    placeholders.put(
-        "{one_time}",
-        kit.isOneTime()
-            ? gui.getConfig().getString("text.one-time-yes", "&aTak")
-            : gui.getConfig().getString("text.one-time-no", "&cNie"));
-    this.applyRankPlaceholders(gui, kit, placeholders);
-    this.applyFeedbackPlaceholders(gui, kit, placeholders);
-    return placeholders;
   }
 
   private EditorAction mapAction(String key) {
@@ -132,7 +91,16 @@ public class EditorGUI {
       case "set-slot" -> EditorAction.SET_SLOT;
       case "set-rank" -> EditorAction.SET_RANK;
       case "set-feedback-type" -> EditorAction.SET_FEEDBACK_TYPE;
+      case "set-price" -> EditorAction.SET_PRICE;
+      case "set-category" -> EditorAction.SET_CATEGORY;
       case "toggle-one-time" -> EditorAction.TOGGLE_ONE_TIME;
+      case "toggle-rarity" -> EditorAction.TOGGLE_RARITY;
+      case "toggle-enabled" -> EditorAction.TOGGLE_ENABLED;
+      case "toggle-hidden" -> EditorAction.TOGGLE_HIDDEN;
+      case "toggle-welcome" -> EditorAction.TOGGLE_WELCOME;
+      case "duplicate" -> EditorAction.DUPLICATE;
+      case "reset-cooldowns" -> EditorAction.RESET_KIT_COOLDOWNS;
+      case "kit-stats" -> EditorAction.VIEW_KIT_STATS;
       case "preview" -> EditorAction.PREVIEW;
       case "delete" -> EditorAction.DELETE;
       case "back" -> EditorAction.BACK;
@@ -140,36 +108,69 @@ public class EditorGUI {
     };
   }
 
-  private void applyRankPlaceholders(GuiConfig gui, Kit kit, Map<String, String> placeholders) {
-    String prefixDisplay;
-    String rankNone = gui.getConfig().getString("text.rank-none", "&7Brak");
+  public Map<String, String> buildPlaceholders(Kit kit) {
+    Map<String, String> ph = this.ph();
+    ph.put("{kit_id}", kit.getId());
+    ph.put("{kit_display}", kit.getDisplayName());
+    ph.put("{cooldown}", pl.tymek24.fortcodekits.util.TimeUtil.formatDuration(kit.getCooldownSeconds()));
+    ph.put("{status}", "");
+    ph.put("{slot}", kit.getGuiSlot() == null ? "-" : String.valueOf(kit.getGuiSlot()));
+    ph.put("{items}", String.valueOf(kit.getItems().size()));
+    ph.put(
+        "{one_time}",
+        kit.isOneTime()
+            ? this.text("text.one-time-yes", "&aTAK")
+            : this.text("text.one-time-no", "&cNIE"));
+    ph.put("{price}", this.plugin.formatPrice(kit.getPrice()));
+    ph.put(
+        "{rarity}",
+        kit.getRarity() == null
+            ? this.text("text.rarity-none", "&7BRAK")
+            : kit.getRarity().display());
+    ph.put(
+        "{rarity_key}",
+        kit.getRarity() == null ? "none" : kit.getRarity().key());
+    ph.put(
+        "{category}",
+        kit.getCategory() == null
+            ? this.text("text.category-default", "&7DOMYSLNA")
+            : kit.getCategory().toUpperCase(java.util.Locale.ROOT));
+    ph.put(
+        "{enabled}",
+        kit.isEnabled() ? this.text("text.yes", "&aTAK") : this.text("text.no", "&cNIE"));
+    ph.put(
+        "{hidden}",
+        kit.isHidden() ? this.text("text.yes", "&aTAK") : this.text("text.no", "&cNIE"));
+    ph.put(
+        "{welcome}",
+        kit.isWelcome() ? this.text("text.yes", "&aTAK") : this.text("text.no", "&cNIE"));
+    ph.put(
+        "{claim_limit}",
+        kit.getClaimCountLimit() == null
+            ? this.text("text.cooldown-ready", "&7BRAK")
+            : String.valueOf(kit.getClaimCountLimit()));
+    ph.put("{claims}", String.valueOf(this.plugin.getStatsManager().getKitClaims(kit.getId())));
     String rank = kit.getRequiredGroup();
+    String rankNone = this.text("text.rank-none", "&7BRAK");
     if (rank == null || rank.isBlank()) {
-      placeholders.put("{rank}", rankNone);
-      placeholders.put("{rank_prefix}", gui.getConfig().getString("text.rank-prefix-none", "&7-"));
-      placeholders.put("{rank_display}", rankNone);
-      return;
+      ph.put("{rank}", rankNone);
+      ph.put("{rank_prefix}", this.text("text.rank-prefix-none", "&7-"));
+      ph.put("{rank_display}", rankNone);
+    } else {
+      String prefix =
+          pl.tymek24.fortcodekits.integration.LuckPermsHook.getGroupPrefix(rank);
+      String display = prefix.isEmpty() ? this.text("text.rank-prefix-none", "&7-") : prefix;
+      ph.put("{rank}", rank);
+      ph.put("{rank_prefix}", display);
+      ph.put("{rank_display}", display);
     }
-    String prefixRaw = LuckPermsHook.getGroupPrefix(rank);
-    String display =
-        prefixDisplay =
-            prefixRaw.isEmpty()
-                ? gui.getConfig().getString("text.rank-prefix-none", "&7-")
-                : prefixRaw;
-    placeholders.put("{rank}", rank);
-    placeholders.put("{rank_prefix}", prefixDisplay);
-    placeholders.put("{rank_display}", display);
-  }
-
-  private void applyFeedbackPlaceholders(GuiConfig gui, Kit kit, Map<String, String> placeholders) {
     String type = kit.getFeedbackType();
-    String defaultText = gui.getConfig().getString("text.feedback-default", "&7Domyslny");
-    String noneText = gui.getConfig().getString("text.feedback-none", "&7Brak");
-    String display =
+    ph.put("{feedback_type}", type == null || type.isBlank() ? "default" : type);
+    ph.put(
+        "{feedback_type_display}",
         type == null || type.isBlank()
-            ? defaultText
-            : (type.equalsIgnoreCase("none") ? noneText : type);
-    placeholders.put("{feedback_type}", type == null || type.isBlank() ? "default" : type);
-    placeholders.put("{feedback_type_display}", display);
+            ? this.text("text.feedback-default", "&7DOMYSLNY")
+            : type.toUpperCase(java.util.Locale.ROOT));
+    return ph;
   }
 }

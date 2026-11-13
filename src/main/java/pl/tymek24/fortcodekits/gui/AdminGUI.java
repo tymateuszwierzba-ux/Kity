@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
@@ -12,15 +13,14 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 import pl.tymek24.fortcodekits.FortCodeKits;
-import pl.tymek24.fortcodekits.integration.LuckPermsHook;
 import pl.tymek24.fortcodekits.model.Kit;
+import pl.tymek24.fortcodekits.model.KitRarity;
+import pl.tymek24.fortcodekits.model.SortMode;
 import pl.tymek24.fortcodekits.util.TimeUtil;
 
-public class AdminGUI {
-  private final FortCodeKits plugin;
-
+public class AdminGUI extends AbstractGui {
   public AdminGUI(FortCodeKits plugin) {
-    this.plugin = plugin;
+    super(plugin);
   }
 
   public void open(Player player) {
@@ -28,58 +28,113 @@ public class AdminGUI {
   }
 
   public void open(Player player, int page) {
-    int pages;
-    GuiConfig gui = this.plugin.getGuiManager().getGuiConfig();
+    GuiConfig gui = this.cfg();
     int size = gui.getSize("admin.size", 54);
-    String rawTitle = gui.getConfig().getString("admin.title", "&4Admin Kits");
-    String title = this.plugin.formatText(rawTitle);
+    UUID uuid = player.getUniqueId();
+    String category = GuiSession.category(uuid);
+    String search = GuiSession.search(uuid);
+    SortMode sort = GuiSession.sort(uuid);
+    Map<String, String> headerPh = this.headerPlaceholders(category, search, sort);
+    String title = this.title("admin.title", "&8ADMIN KITY", headerPh);
+
     HashMap<Integer, String> slotToKit = new HashMap<Integer, String>();
     GuiHolder holder = new GuiHolder(GuiType.ADMIN, slotToKit, null, null, page, null);
-    Inventory inv = Bukkit.createInventory((InventoryHolder) holder, (int) size, (String) title);
+    holder.setCategoryFilter(category);
+    holder.setSearchQuery(search);
+    holder.setSortMode(sort);
+    Inventory inv = Bukkit.createInventory((InventoryHolder) holder, size, title);
     holder.setInventory(inv);
-    this.applyFiller(inv, gui, "admin.filler");
-    ArrayList<Kit> kits = new ArrayList<Kit>(this.plugin.getKitManager().getKits());
+    this.fill(inv, "admin.filler");
+
+    List<Kit> kits = this.visibleAdminKits(category, search, sort);
     HashSet<String> fixed = new HashSet<String>();
     List<Integer> kitSlots = gui.getSlots("admin.kit-slots");
     ConfigurationSection kitItemSection = gui.getConfig().getConfigurationSection("admin.kit-item");
     for (Kit kit : kits) {
-      Integer n = kit.getGuiSlot();
-      if (n == null || n < 0 || n >= size) continue;
-      ItemStack item = this.buildKitItem(kit, kitItemSection, gui);
-      inv.setItem(n.intValue(), item);
-      slotToKit.put(n, kit.getId());
+      Integer slot = kit.getGuiSlot();
+      if (slot == null || slot < 0 || slot >= size || slotToKit.containsKey(slot)) continue;
+      inv.setItem(slot, this.buildKitItem(kit, kitItemSection, gui));
+      slotToKit.put(slot, kit.getId());
       fixed.add(kit.getId());
     }
-    ArrayList<Kit> dynamic = new ArrayList<Kit>();
+    List<Kit> dynamic = new ArrayList<Kit>();
     for (Kit kit : kits) {
       if (fixed.contains(kit.getId())) continue;
       dynamic.add(kit);
     }
-    ArrayList<Integer> arrayList = new ArrayList<Integer>();
+    ArrayList<Integer> freeSlots = new ArrayList<Integer>();
     for (int slot : kitSlots) {
       if (slot < 0 || slot >= size || slotToKit.containsKey(slot)) continue;
-      arrayList.add(slot);
+      freeSlots.add(slot);
     }
-    int n = arrayList.size();
-    int n2 = pages = n == 0 ? 1 : (int) Math.ceil((double) dynamic.size() / (double) n);
+    int perPage = freeSlots.size();
+    int pages = perPage == 0 ? 1 : (int) Math.ceil((double) dynamic.size() / (double) perPage);
     if (pages <= 0) {
       pages = 1;
     }
     int safePage = Math.max(1, Math.min(page, pages));
-    int start = (safePage - 1) * n;
-    int end = Math.min(dynamic.size(), start + n);
+    int start = (safePage - 1) * perPage;
+    int end = Math.min(dynamic.size(), start + perPage);
     int slotIndex = 0;
-    for (int i = start; i < end && slotIndex < arrayList.size(); ++i) {
-      int slot = (Integer) arrayList.get(slotIndex++);
-      Kit kit4 = (Kit) dynamic.get(i);
-      ItemStack item = this.buildKitItem(kit4, kitItemSection, gui);
-      inv.setItem(slot, item);
-      slotToKit.put(slot, kit4.getId());
+    for (int i = start; i < end && slotIndex < freeSlots.size(); i++) {
+      int slot = freeSlots.get(slotIndex++);
+      Kit kit = dynamic.get(i);
+      inv.setItem(slot, this.buildKitItem(kit, kitItemSection, gui));
+      slotToKit.put(slot, kit.getId());
     }
-    this.placeNavigation(inv, gui, "admin.navigation", safePage, pages);
-    this.placeCreate(inv, gui, "admin.actions.create");
+
+    headerPh.put("{page}", String.valueOf(safePage));
+    headerPh.put("{pages}", String.valueOf(pages));
+    headerPh.put("{visible}", String.valueOf(slotToKit.size()));
+    headerPh.put("{total}", String.valueOf(kits.size()));
+    this.placeSection(inv, "admin.header", headerPh);
+    this.placeSectionButtons(inv, "admin.footer", headerPh, safePage, pages, search);
+    this.button(inv, "admin.actions.create", headerPh);
     player.openInventory(inv);
-    this.plugin.playConfiguredSound(player, "sounds.open");
+    this.openSound(player);
+  }
+
+  private void placeSection(Inventory inv, String path, Map<String, String> placeholders) {
+    ConfigurationSection section = this.cfg().getConfig().getConfigurationSection(path);
+    if (section == null) {
+      return;
+    }
+    for (String key : section.getKeys(false)) {
+      ConfigurationSection button = section.getConfigurationSection(key);
+      if (button == null) continue;
+      int slot = button.getInt("slot", -1);
+      if (slot < 0 || slot >= inv.getSize()) continue;
+      ItemStack item = this.sectionItem(button, placeholders);
+      if (item != null) {
+        inv.setItem(slot, item);
+      }
+    }
+  }
+
+  private void placeSectionButtons(
+      Inventory inv,
+      String path,
+      Map<String, String> placeholders,
+      int page,
+      int pages,
+      String search) {
+    ConfigurationSection section = this.cfg().getConfig().getConfigurationSection(path);
+    if (section == null) {
+      return;
+    }
+    for (String key : section.getKeys(false)) {
+      ConfigurationSection button = section.getConfigurationSection(key);
+      if (button == null) continue;
+      if (key.equals("clear-search") && (search == null || search.isEmpty())) continue;
+      if (key.equals("prev") && page <= 1) continue;
+      if (key.equals("next") && page >= pages) continue;
+      int slot = button.getInt("slot", -1);
+      if (slot < 0 || slot >= inv.getSize()) continue;
+      ItemStack item = this.sectionItem(button, placeholders);
+      if (item != null) {
+        inv.setItem(slot, item);
+      }
+    }
   }
 
   public void refresh(Player player, GuiHolder holder) {
@@ -90,118 +145,161 @@ public class AdminGUI {
     if (inv == null) {
       return;
     }
-    GuiConfig gui = this.plugin.getGuiManager().getGuiConfig();
+    GuiConfig gui = this.cfg();
     ConfigurationSection kitItemSection = gui.getConfig().getConfigurationSection("admin.kit-item");
     for (Map.Entry<Integer, String> entry : holder.getKitSlots().entrySet()) {
-      int slot = entry.getKey();
-      String kitId = entry.getValue();
-      Kit kit = this.plugin.getKitManager().getKit(kitId).orElse(null);
+      Kit kit = this.plugin.getKitManager().getKit(entry.getValue()).orElse(null);
       if (kit == null) {
-        inv.setItem(slot, null);
+        inv.setItem(entry.getKey(), null);
         continue;
       }
-      inv.setItem(slot, this.buildKitItem(kit, kitItemSection, gui));
+      inv.setItem(entry.getKey(), this.buildKitItem(kit, kitItemSection, gui));
     }
   }
 
-  private void applyFiller(Inventory inv, GuiConfig gui, String path) {
-    if (!gui.getConfig().getBoolean(path + ".enabled", false)) {
-      return;
+  private List<Kit> visibleAdminKits(String category, String search, SortMode sort) {
+    List<Kit> kits = new ArrayList<Kit>();
+    String categoryKey = category == null ? "" : category.trim().toLowerCase(java.util.Locale.ROOT);
+    String query = search == null ? "" : search.trim().toLowerCase(java.util.Locale.ROOT);
+    for (Kit kit : this.plugin.getKitManager().getKits()) {
+      if (!categoryKey.isEmpty() && !categoryKey.equals("all")) {
+        String kitCategory = kit.getCategory() == null ? "default" : kit.getCategory();
+        if (!kitCategory.equalsIgnoreCase(categoryKey)) continue;
+      }
+      if (!query.isEmpty()) {
+        String haystack =
+            (kit.getId()
+                    + " "
+                    + kit.getDisplayName()
+                    + " "
+                    + (kit.getCategory() == null ? "" : kit.getCategory()))
+                .toLowerCase(java.util.Locale.ROOT);
+        if (!haystack.contains(query)) continue;
+      }
+      kits.add(kit);
     }
-    ItemStack filler = gui.buildItem(path + ".item", Map.of());
-    if (filler == null) {
-      return;
+    if (sort == null || sort == SortMode.DEFAULT) {
+      kits.sort(java.util.Comparator.comparing(Kit::getId));
+    } else {
+      switch (sort) {
+        case NAME:
+          kits.sort(
+              java.util.Comparator.comparing(
+                  kit ->
+                      kit.getDisplayName()
+                          .replaceAll("(?i)<[^>]+>", "")
+                          .toLowerCase(java.util.Locale.ROOT)));
+          break;
+        case COOLDOWN:
+          kits.sort(java.util.Comparator.comparingLong(Kit::getCooldownSeconds));
+          break;
+        case STATUS:
+          kits.sort(
+              java.util.Comparator.comparing(
+                  kit -> !kit.isEnabled() ? 0 : (kit.isHidden() ? 1 : 2)));
+          break;
+        case RARITY:
+          kits.sort(
+              java.util.Comparator.comparingInt(
+                  kit -> kit.getRarity() == null ? -1 : kit.getRarity().ordinal()));
+          break;
+        default:
+          kits.sort(java.util.Comparator.comparing(Kit::getId));
+      }
     }
-    for (int slot : gui.getSlots(path + ".slots")) {
-      if (slot < 0 || slot >= inv.getSize()) continue;
-      inv.setItem(slot, filler);
-    }
+    return kits;
   }
 
-  private ItemStack buildKitItem(Kit kit, ConfigurationSection kitItemSection, GuiConfig gui) {
-    HashMap<String, String> placeholders = new HashMap<String, String>();
-    placeholders.put("{kit_id}", kit.getId());
-    placeholders.put("{kit_display}", kit.getDisplayName());
-    placeholders.put("{cooldown}", TimeUtil.formatDuration(kit.getCooldownSeconds()));
-    placeholders.put("{status}", "");
-    placeholders.put("{slot}", kit.getGuiSlot() == null ? "-" : String.valueOf(kit.getGuiSlot()));
-    placeholders.put("{items}", String.valueOf(kit.getItems().size()));
-    placeholders.put(
-        "{one_time}",
-        kit.isOneTime()
-            ? gui.getConfig().getString("text.one-time-yes", "&aTak")
-            : gui.getConfig().getString("text.one-time-no", "&cNie"));
-    this.applyRankPlaceholders(gui, kit, placeholders);
-    this.applyFeedbackPlaceholders(gui, kit, placeholders);
+  private Map<String, String> headerPlaceholders(String category, String search, SortMode sort) {
+    Map<String, String> ph = this.ph();
+    String categoryDisplay =
+        category == null || category.isEmpty()
+            ? this.text("text.filter-all", "&7WSZYSTKIE")
+            : category.toUpperCase(java.util.Locale.ROOT);
+    ph.put("{filter}", categoryDisplay);
+    ph.put(
+        "{search}",
+        search == null || search.isEmpty() ? this.text("text.search-none", "&7BRAK") : search);
+    ph.put("{sort}", sort == null ? SortMode.DEFAULT.label() : sort.label());
+    ph.put("{kits}", String.valueOf(this.plugin.getKitManager().getKits().size()));
+    ph.put("{total_claims}", String.valueOf(this.plugin.getStatsManager().getTotalClaims()));
+    ph.put(
+        "{history}",
+        String.valueOf(this.plugin.getStatsManager().historySize()));
+    return ph;
+  }
+
+  public ItemStack buildKitItem(Kit kit, ConfigurationSection kitItemSection, GuiConfig gui) {
+    Map<String, String> ph = this.kitPlaceholders(kit, gui);
     if (kitItemSection == null) {
       return kit.getIcon();
     }
-    return gui.applyTemplate(kit.getIcon(), kitItemSection, placeholders);
+    ItemStack item = gui.applyTemplate(kit.getIcon(), kitItemSection, ph);
+    if (kit.getRarity() == KitRarity.LEGENDARY || kit.getRarity() == KitRarity.EPIC) {
+      gui.applyGlow(item);
+    }
+    return item;
   }
 
-  private void applyRankPlaceholders(GuiConfig gui, Kit kit, Map<String, String> placeholders) {
-    String prefixDisplay;
-    String rankNone = gui.getConfig().getString("text.rank-none", "&7Brak");
+  private Map<String, String> kitPlaceholders(Kit kit, GuiConfig gui) {
+    Map<String, String> ph = this.ph();
+    ph.put("{kit_id}", kit.getId());
+    ph.put("{kit_display}", kit.getDisplayName());
+    ph.put("{cooldown}", TimeUtil.formatDuration(kit.getCooldownSeconds()));
+    ph.put("{status}", "");
+    ph.put("{slot}", kit.getGuiSlot() == null ? "-" : String.valueOf(kit.getGuiSlot()));
+    ph.put("{items}", String.valueOf(kit.getItems().size()));
+    ph.put(
+        "{one_time}",
+        kit.isOneTime()
+            ? this.text("text.one-time-yes", "&aTAK")
+            : this.text("text.one-time-no", "&cNIE"));
+    ph.put("{price}", this.plugin.formatPrice(kit.getPrice()));
+    ph.put(
+        "{rarity}",
+        kit.getRarity() == null
+            ? this.text("text.rarity-none", "&7BRAK")
+            : kit.getRarity().display());
+    ph.put(
+        "{category}",
+        kit.getCategory() == null
+            ? this.text("text.category-default", "&7DOMYSLNA")
+            : kit.getCategory().toUpperCase(java.util.Locale.ROOT));
+    ph.put(
+        "{enabled}",
+        kit.isEnabled() ? this.text("text.yes", "&aTAK") : this.text("text.no", "&cNIE"));
+    ph.put(
+        "{hidden}",
+        kit.isHidden() ? this.text("text.yes", "&aTAK") : this.text("text.no", "&cNIE"));
+    ph.put(
+        "{welcome}",
+        kit.isWelcome() ? this.text("text.yes", "&aTAK") : this.text("text.no", "&cNIE"));
+    ph.put(
+        "{claim_limit}",
+        kit.getClaimCountLimit() == null
+            ? this.text("text.cooldown-ready", "&7BRAK")
+            : String.valueOf(kit.getClaimCountLimit()));
+    ph.put("{claims}", String.valueOf(this.plugin.getStatsManager().getKitClaims(kit.getId())));
     String rank = kit.getRequiredGroup();
+    String rankNone = this.text("text.rank-none", "&7BRAK");
     if (rank == null || rank.isBlank()) {
-      placeholders.put("{rank}", rankNone);
-      placeholders.put("{rank_prefix}", gui.getConfig().getString("text.rank-prefix-none", "&7-"));
-      placeholders.put("{rank_display}", rankNone);
-      return;
+      ph.put("{rank}", rankNone);
+      ph.put("{rank_prefix}", this.text("text.rank-prefix-none", "&7-"));
+      ph.put("{rank_display}", rankNone);
+    } else {
+      String prefix = pl.tymek24.fortcodekits.integration.LuckPermsHook.getGroupPrefix(rank);
+      String display = prefix.isEmpty() ? this.text("text.rank-prefix-none", "&7-") : prefix;
+      ph.put("{rank}", rank);
+      ph.put("{rank_prefix}", display);
+      ph.put("{rank_display}", display);
     }
-    String prefixRaw = LuckPermsHook.getGroupPrefix(rank);
-    String display =
-        prefixDisplay =
-            prefixRaw.isEmpty()
-                ? gui.getConfig().getString("text.rank-prefix-none", "&7-")
-                : prefixRaw;
-    placeholders.put("{rank}", rank);
-    placeholders.put("{rank_prefix}", prefixDisplay);
-    placeholders.put("{rank_display}", display);
-  }
-
-  private void applyFeedbackPlaceholders(GuiConfig gui, Kit kit, Map<String, String> placeholders) {
     String type = kit.getFeedbackType();
-    String defaultText = gui.getConfig().getString("text.feedback-default", "&7Domyslny");
-    String noneText = gui.getConfig().getString("text.feedback-none", "&7Brak");
-    String display =
+    ph.put("{feedback_type}", type == null || type.isBlank() ? "default" : type);
+    ph.put(
+        "{feedback_type_display}",
         type == null || type.isBlank()
-            ? defaultText
-            : (type.equalsIgnoreCase("none") ? noneText : type);
-    placeholders.put("{feedback_type}", type == null || type.isBlank() ? "default" : type);
-    placeholders.put("{feedback_type_display}", display);
-  }
-
-  private void placeNavigation(Inventory inv, GuiConfig gui, String path, int page, int pages) {
-    ItemStack next;
-    ItemStack prev;
-    HashMap<String, String> placeholders = new HashMap<String, String>();
-    placeholders.put("{page}", String.valueOf(page));
-    placeholders.put("{pages}", String.valueOf(pages));
-    int prevSlot = gui.getConfig().getInt(path + ".prev.slot", -1);
-    int nextSlot = gui.getConfig().getInt(path + ".next.slot", -1);
-    if (page > 1
-        && prevSlot >= 0
-        && prevSlot < inv.getSize()
-        && (prev = gui.buildItem(path + ".prev.item", placeholders)) != null) {
-      inv.setItem(prevSlot, prev);
-    }
-    if (page < pages
-        && nextSlot >= 0
-        && nextSlot < inv.getSize()
-        && (next = gui.buildItem(path + ".next.item", placeholders)) != null) {
-      inv.setItem(nextSlot, next);
-    }
-  }
-
-  private void placeCreate(Inventory inv, GuiConfig gui, String path) {
-    int slot = gui.getConfig().getInt(path + ".slot", -1);
-    if (slot < 0 || slot >= inv.getSize()) {
-      return;
-    }
-    ItemStack item = gui.buildItem(path + ".item", Map.of());
-    if (item != null) {
-      inv.setItem(slot, item);
-    }
+            ? this.text("text.feedback-default", "&7DOMYSLNY")
+            : type.toUpperCase(java.util.Locale.ROOT));
+    return ph;
   }
 }
