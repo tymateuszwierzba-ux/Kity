@@ -67,9 +67,6 @@ kits:
       ==: org.bukkit.inventory.ItemStack
       v: 3700
       type: NETHER_STAR
-      meta:
-        ==: org.bukkit.inventory.meta.ItemStackMeta
-        displayName: "&6&lPREMIUM KIT"
     items:
       - ==: org.bukkit.inventory.ItemStack
         v: 3700

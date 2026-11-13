@@ -23,7 +23,14 @@ public class KitManager {
 
   public void load() {
     this.file = new File(this.plugin.getDataFolder(), "kits.yml");
-    this.config = YamlConfiguration.loadConfiguration((File) this.file);
+    try {
+      this.config = YamlConfiguration.loadConfiguration(this.file);
+    } catch (RuntimeException ex) {
+      this.config = null;
+      this.kits.clear();
+      this.plugin.getLogger().severe("Nie udalo sie odczytac kits.yml: " + ex.getMessage());
+      return;
+    }
     this.kits.clear();
     ConfigurationSection section = this.config.getConfigurationSection("kits");
     if (section == null) {
@@ -37,6 +44,10 @@ public class KitManager {
   }
 
   public void save() {
+    if (this.config == null) {
+      this.plugin.getLogger().severe("kits.yml nie zostal odczytany, zapis pominieto");
+      return;
+    }
     this.config.set("kits", null);
     ConfigurationSection root = this.config.createSection("kits");
     for (Kit kit : this.kits.values()) {
