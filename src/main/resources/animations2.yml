@@ -1,54 +1,22 @@
 enabled: true
 
 claim:
-  # tryb
   mode: "forward"
 
-  # co ile tickow wysylac kolejny batch.
   interval-ticks: 2
 
-  # losowe odchylenie interwalu (+/-), np. 1 -> interwal 1..3.
   interval-jitter-ticks: 0
 
-  # Ile itemow na jedną klatke albo item chyba ale nwma animacji.
   batch-size: 1
 
-  # Opoznienie startu animacji po odebraniu kita.
   start-delay-ticks: 0
 
-  # true = stacki dzielone na pojedyncze sztuki podczas animacji.
   split-stacks: false
 
-  # 0 = bez limitu, >0 = limit liczby itemow animowanych.
   max-items: 0
 
-  # Lista trybow:
-  # all_at_once, forward, reverse, random,
-  # even_then_odd, odd_then_even,
-  # center_out, outside_in,
-  # edge_alternate, edge_alternate_reverse,
-  # second_half_then_first,
-  # waves_2, waves_3,
-  # chunked_random_2, chunked_random_3,
-  # forward_skip_one, reverse_skip_one,
-  # mirror_center, mirror_edges,
-  # random_weighted
 
   temporary-glow:
     enabled: true
     remove-after-ticks: 30
     enchantment: "minecraft:unbreaking"
-
-  # Komendy per-kit:
-  # /adminkit claimanim <kit> status
-  # /adminkit claimanim <kit> on|off|default
-  # /adminkit claimanim <kit> mode <nazwa|default>
-  # /adminkit claimanim <kit> interval <ticks|default>
-  # /adminkit claimanim <kit> jitter <ticks|default>
-  # /adminkit claimanim <kit> batch <ilosc|default>
-  # /adminkit claimanim <kit> split <on|off|default>
-  # /adminkit claimanim <kit> max-items <0+|default>
-  # /adminkit claimanim <kit> delay <ticks|default>
-  # /adminkit claimanim <kit> glow <on|off|default>
-  # /adminkit claimanim <kit> glow-remove <ticks|default>
-  # /adminkit claimanim <kit> glow-enchant <minecraft:key|default>

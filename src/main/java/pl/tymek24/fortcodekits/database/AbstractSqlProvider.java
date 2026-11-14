@@ -6,6 +6,7 @@ import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -106,6 +107,37 @@ public abstract class AbstractSqlProvider implements DatabaseProvider {
               PreparedStatement ps = connection.prepareStatement(sql); ) {
             ps.setString(1, kitId.toLowerCase());
             ps.executeUpdate();
+          } catch (SQLException ex) {
+            throw new RuntimeException(ex);
+          }
+        },
+        this.executor);
+  }
+
+  @Override
+  public CompletableFuture<Void> resetAllForPlayer(UUID playerId) {
+    return CompletableFuture.runAsync(
+        () -> {
+          String sql = "DELETE FROM kit_cooldowns WHERE player_uuid = ?";
+          try (Connection connection = this.dataSource.getConnection();
+              PreparedStatement ps = connection.prepareStatement(sql); ) {
+            ps.setString(1, playerId.toString());
+            ps.executeUpdate();
+          } catch (SQLException ex) {
+            throw new RuntimeException(ex);
+          }
+        },
+        this.executor);
+  }
+
+  @Override
+  public CompletableFuture<Void> resetAll() {
+    return CompletableFuture.runAsync(
+        () -> {
+          String sql = "DELETE FROM kit_cooldowns";
+          try (Connection connection = this.dataSource.getConnection();
+              Statement st = connection.createStatement(); ) {
+            st.executeUpdate(sql);
           } catch (SQLException ex) {
             throw new RuntimeException(ex);
           }

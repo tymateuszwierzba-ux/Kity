@@ -1,5 +1,5 @@
 database:
-  type: "sqlite" # mysql / sqlite
+  type: "sqlite"
   mysql:
     host: "localhost"
     port: 3306
@@ -7,14 +7,40 @@ database:
     user: "root"
     password: "password"
 
-# GUI konfiguruj w gui.ymlzmn
+autosave:
+  interval-seconds: 120
+
+welcome:
+  enabled: true
+  delay-ticks: 60
+  interval-ticks: 12000
+
+favorites:
+  max-per-player: 54
+
+history:
+  max-entries: 200
+
+player-settings:
+  defaults:
+    sounds: true
+    particles: true
+    claim-animation: true
+    text-animation: true
+    title-feedback: true
+    bossbar-feedback: true
+    actionbar-feedback: true
+
 sounds:
   open: "UI_BUTTON_CLICK"
+  click: "UI_BUTTON_CLICK"
   claim: "ENTITY_PLAYER_LEVELUP"
+  error: "BLOCK_NOTE_BLOCK_BASS"
+  confirm: "BLOCK_ANVIL_LAND"
 
 feedback:
   claim:
-    channels: ["chat"] # chat / title / actionbar / bossbar
+    channels: ["chat"]
     message-animation:
       enabled: true
       channels: ["actionbar", "bossbar"]

@@ -4,20 +4,12 @@ kits:
     cooldown: 3600
     one-time: false
     gui-slot: 10
-    # Per-kit override pod claimanim:
-    # claim-animation:
-    #   enabled: true
-    #   mode: "forward" # sprawdz animations2.yml po liste 20 trybow
-    #   interval-ticks: 2
-    #   interval-jitter-ticks: 0
-    #   batch-size: 1
-    #   start-delay-ticks: 0
-    #   split-stacks: false
-    #   max-items: 0
-    #   temporary-glow:
-    #     enabled: true
-    #     remove-after-ticks: 30
-    #     enchantment: "minecraft:unbreaking"
+    category: "start"
+    rarity: "common"
+    price: 0.0
+    enabled: true
+    hidden: false
+    welcome: true
     icon:
       ==: org.bukkit.inventory.ItemStack
       v: 3700
@@ -30,3 +22,60 @@ kits:
         v: 3700
         type: BREAD
         amount: 16
+  pvp:
+    display-name: "<anim:blue>PVP</anim>"
+    cooldown: 7200
+    one-time: false
+    gui-slot: 11
+    category: "pvp"
+    rarity: "rare"
+    price: 500.0
+    enabled: true
+    hidden: false
+    welcome: false
+    icon:
+      ==: org.bukkit.inventory.ItemStack
+      v: 3700
+      type: DIAMOND_SWORD
+    items:
+      - ==: org.bukkit.inventory.ItemStack
+        v: 3700
+        type: DIAMOND_SWORD
+      - ==: org.bukkit.inventory.ItemStack
+        v: 3700
+        type: IRON_HELMET
+      - ==: org.bukkit.inventory.ItemStack
+        v: 3700
+        type: IRON_CHESTPLATE
+      - ==: org.bukkit.inventory.ItemStack
+        v: 3700
+        type: COOKED_BEEF
+        amount: 32
+  premium:
+    display-name: "<anim:gold>PREMIUM</anim>"
+    cooldown: 86400
+    one-time: false
+    gui-slot: 12
+    category: "premium"
+    rarity: "legendary"
+    price: 5000.0
+    enabled: true
+    hidden: false
+    welcome: false
+    rank: "premium"
+    icon:
+      ==: org.bukkit.inventory.ItemStack
+      v: 3700
+      type: NETHER_STAR
+    items:
+      - ==: org.bukkit.inventory.ItemStack
+        v: 3700
+        type: NETHERITE_SWORD
+      - ==: org.bukkit.inventory.ItemStack
+        v: 3700
+        type: GOLDEN_APPLE
+        amount: 16
+      - ==: org.bukkit.inventory.ItemStack
+        v: 3700
+        type: EMERALD
+        amount: 32

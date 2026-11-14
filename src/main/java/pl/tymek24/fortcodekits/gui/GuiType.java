@@ -6,5 +6,11 @@ public enum GuiType {
   PREVIEW,
   EDITOR,
   RANK,
-  FEEDBACK;
+  FEEDBACK,
+  SETTINGS,
+  STATS,
+  HISTORY,
+  FAVORITES,
+  TOP,
+  CONFIRM;
 }

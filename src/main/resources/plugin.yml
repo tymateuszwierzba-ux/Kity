@@ -1,8 +1,9 @@
 name: fortcode-kits
-version: 1.0.0
+version: 2.0.0
 main: pl.tymek24.fortcodekits.FortCodeKits
 api-version: '1.18'
 author: TYMEK24
+description: FORT-CODE KITS - rozbudowany system kitow z GUI, statystykami i ekonomia
 softdepend: [PlaceholderAPI, Vault, LuckPerms]
 commands:
   kits:
@@ -11,7 +12,7 @@ commands:
     permission: fortcode.kits.use
   adminkit:
     description: Panel administracyjny kitow
-    usage: "/adminkit <open|create|edit|delete|setname|setcooldown|setslot|setrank|animation|animacja|claimanim|reload>"
+    usage: "/adminkit <open|create|edit|delete|setname|setcooldown|setslot|setrank|setprice|setcategory|setrarity|setclaimlimit|toggle-onetime|toggle-enabled|toggle-hidden|toggle-welcome|duplicate|resetall|stats|history|top|search|clearhistory|clearstats|animation|claimanim|reload>"
     permission: fortcode.kits.admin
 permissions:
   fortcode.kits.use:
@@ -26,3 +27,13 @@ permissions:
     default: op
   fortcode.kits.give:
     default: op
+  fortcode.kits.hidden:
+    default: op
+  fortcode.kits.history.all:
+    default: op
+  fortcode.kits.favorites:
+    default: true
+  fortcode.kits.stats:
+    default: true
+  fortcode.kits.settings:
+    default: true

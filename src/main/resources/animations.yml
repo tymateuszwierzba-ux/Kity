@@ -1,16 +1,6 @@
 enabled: true
 refresh-ticks: 1
 
-# Uzycie:
-# 1) Plynna animacja:
-#    <anim:rainbow>ADMIN</anim>
-# 2) gradient:
-#    <gradient:#FF0000:#00FF00>ADMIN</gradient>
-#    (alias: <grad:#FF0000:#00FF00>ADMIN</grad>)
-#
-# type:
-# - gradient
-# - frames
 animations:
   rainbow:
     type: gradient

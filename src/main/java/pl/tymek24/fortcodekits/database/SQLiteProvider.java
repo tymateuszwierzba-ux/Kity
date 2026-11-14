@@ -16,6 +16,11 @@ public class SQLiteProvider extends AbstractSqlProvider {
 
   private static HikariDataSource buildSource(File folder) {
     File db = new File(folder, "kits.db");
+    try {
+      Class.forName("org.sqlite.JDBC");
+    } catch (ClassNotFoundException ex) {
+      throw new RuntimeException(ex);
+    }
     HikariConfig config = new HikariConfig();
     config.setJdbcUrl("jdbc:sqlite:" + db.getAbsolutePath());
     config.setMaximumPoolSize(1);

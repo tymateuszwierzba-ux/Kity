@@ -1,0 +1,38 @@
+name: build
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  maven:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - name: Build
+        shell: bash
+        run: |
+          code=0
+          mvn -B package 2>&1 | tee mvn.log || code=$?
+          if [ "$code" -ne 0 ]; then
+            echo "::error::mvn package failed (exit $code)"
+            grep -E '\[ERROR\]' mvn.log | tail -40 | while IFS= read -r line; do echo "::error::$line"; done
+            {
+              echo '### Maven errors'
+              echo '```'
+              grep -E '\[ERROR\]' mvn.log | tail -60
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+          exit "$code"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fortcode-kits
+          path: target/*.jar
+          if-no-files-found: error
