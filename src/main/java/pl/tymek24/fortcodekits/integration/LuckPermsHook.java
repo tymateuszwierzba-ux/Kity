@@ -25,8 +25,12 @@ public final class LuckPermsHook {
       return null;
     }
     try {
-      return LuckPermsProvider.get();
-    } catch (IllegalStateException ex) {
+      LuckPerms api = LuckPermsProvider.get();
+      if (api.getUserManager() == null) {
+        return null;
+      }
+      return api;
+    } catch (IllegalStateException | LinkageError ex) {
       return null;
     }
   }
@@ -78,13 +82,13 @@ public final class LuckPermsHook {
   }
 
   public static boolean isUserInGroup(Player player, String groupName) {
-    LuckPerms api = LuckPermsHook.getApi();
-    if (api == null) {
-      return false;
-    }
     String normalized = LuckPermsHook.normalizeGroup(groupName);
     if (normalized == null) {
       return false;
+    }
+    LuckPerms api = LuckPermsHook.getApi();
+    if (api == null) {
+      return player.hasPermission("group." + normalized);
     }
     User user = api.getUserManager().getUser(player.getUniqueId());
     if (user == null) {
