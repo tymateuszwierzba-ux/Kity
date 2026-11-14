@@ -755,13 +755,17 @@ public class KitClaimAnimationManager {
   private Enchantment resolveEnchantment(String raw, boolean fallbackDefault) {
     NamespacedKey key = this.parseEnchantmentKey(raw);
     if (key == null) {
-      return fallbackDefault ? Enchantment.DURABILITY : null;
+      return fallbackDefault
+          ? Enchantment.getByKey(NamespacedKey.minecraft("unbreaking"))
+          : null;
     }
     Enchantment enchantment = Enchantment.getByKey(key);
     if (enchantment != null) {
       return enchantment;
     }
-    return fallbackDefault ? Enchantment.DURABILITY : null;
+    return fallbackDefault
+        ? Enchantment.getByKey(NamespacedKey.minecraft("unbreaking"))
+        : null;
   }
 
   private NamespacedKey parseEnchantmentKey(String raw) {
