@@ -18,10 +18,9 @@ jobs:
       - name: Build
         shell: bash
         run: |
-          set -o pipefail
-          mvn -B package 2>&1 | tee mvn.log
-          code=$?
-          if [ $code -ne 0 ]; then
+          code=0
+          mvn -B package 2>&1 | tee mvn.log || code=$?
+          if [ "$code" -ne 0 ]; then
             echo "::error::mvn package failed (exit $code)"
             grep -E '\[ERROR\]' mvn.log | tail -40 | while IFS= read -r line; do echo "::error::$line"; done
             {
@@ -31,7 +30,7 @@ jobs:
               echo '```'
             } >> "$GITHUB_STEP_SUMMARY"
           fi
-          exit $code
+          exit "$code"
       - uses: actions/upload-artifact@v4
         with:
           name: fortcode-kits
